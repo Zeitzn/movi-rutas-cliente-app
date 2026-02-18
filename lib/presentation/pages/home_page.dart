@@ -285,12 +285,89 @@ class _HomePageState extends State<HomePage> {
     final textTheme = Theme.of(context).textTheme;
 
     return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary,
+              colorScheme.secondary.withOpacity(0.9),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary.withOpacity(0.2),
+              blurRadius: 24,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: colorScheme.primary),
+            Container(
+              width: 92,
+              height: 92,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.15),
+                border: Border.all(color: Colors.white.withOpacity(0.2)),
+              ),
+              child: Icon(icon, size: 48, color: Colors.white),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: textTheme.titleLarge?.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium?.copyWith(
+                color: Colors.white.withOpacity(0.92),
+                height: 1.5,
+              ),
+            ),
+            ...extra,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoMessage({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String description,
+    List<Widget> actions = const [],
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colorScheme.primary.withOpacity(0.08),
+              ),
+              child: Icon(icon, size: 40, color: colorScheme.primary),
+            ),
             const SizedBox(height: 16),
             Text(
               title,
@@ -303,9 +380,9 @@ class _HomePageState extends State<HomePage> {
             Text(
               description,
               textAlign: TextAlign.center,
-              style: textTheme.bodyMedium,
+              style: textTheme.bodyMedium?.copyWith(color: Colors.black54),
             ),
-            ...extra,
+            if (actions.isNotEmpty) ...[const SizedBox(height: 18), ...actions],
           ],
         ),
       ),
@@ -313,76 +390,225 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildEnableLocationPrompt(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32.0),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.location_off, size: 48, color: Colors.redAccent),
-          const SizedBox(height: 16),
-          const Text(
-            'Necesitamos que actives el servicio de ubicación para continuar.',
-            textAlign: TextAlign.center,
+    return _buildInfoMessage(
+      context: context,
+      icon: Icons.location_searching_rounded,
+      title: 'Activa los servicios de ubicación',
+      description:
+          'Para centrar el mapa en ti necesitamos que el GPS del dispositivo esté habilitado.',
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () {
+              context.read<UserLocationBloc>().add(
+                const EnableLocationServicesEvent(),
+              );
+            },
+            child: const Text('Activar ubicación'),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                context.read<UserLocationBloc>().add(
-                  const EnableLocationServicesEvent(),
-                );
-              },
-              child: const Text('Activar ubicación'),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Intentaremos encenderla automáticamente o te llevaremos a la configuración.',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Colors.black54),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Intentaremos activarla automáticamente o te dirigiremos a la configuración del sistema.',
+          textAlign: TextAlign.center,
+          style: Theme.of(
+            context,
+          ).textTheme.bodySmall?.copyWith(color: Colors.black54),
+        ),
+      ],
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Rastreo de Rutas'), elevation: 0),
-      body: Column(
-        children: [
-          BlocBuilder<RouteSelectionBloc, RouteSelectionState>(
-            builder: (context, state) {
-              if (state is RouteSelectionLoaded) {
-                return RouteSelectorWidget(
-                  routes: state.routes,
-                  selectedRoute: state.selectedRoute,
-                  onRouteSelected: _handleRouteSelection,
-                  isLoading: false,
-                );
-              } else if (state is RouteSelectionLoading) {
-                return Container(
-                  padding: const EdgeInsets.all(16.0),
-                  child: const CircularProgressIndicator(),
-                );
-              } else if (state is RouteSelectionError) {
-                return Container(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Error: ${state.message}',
-                    style: const TextStyle(color: Colors.red),
-                  ),
-                );
-              }
-              return Container(
-                padding: const EdgeInsets.all(16.0),
-                child: const CircularProgressIndicator(),
-              );
-            },
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              colorScheme.primary.withOpacity(0.12),
+              colorScheme.surface,
+            ],
           ),
-          Expanded(
+        ),
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 8),
+              _buildHeader(context),
+              const SizedBox(height: 20),
+              _buildRouteSelectorCard(context),
+              const SizedBox(height: 16),
+              _buildMapSection(context),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(28),
+          gradient: LinearGradient(
+            colors: [
+              colorScheme.primary,
+              colorScheme.primary.withOpacity(0.78),
+            ],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary.withOpacity(0.25),
+              blurRadius: 26,
+              offset: const Offset(0, 18),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.2),
+              ),
+              child: const Icon(
+                Icons.directions_bus_rounded,
+                color: Colors.white,
+                size: 34,
+              ),
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Enrutados',
+                    style: textTheme.titleMedium?.copyWith(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Planifica y monitorea tus rutas en tiempo real.',
+                    style: textTheme.bodyMedium?.copyWith(
+                      color: Colors.white,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRouteSelectorCard(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '¿A qué ruta quieres hacer seguimiento hoy?',
+                style: textTheme.titleMedium,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Selecciona una ruta para conectarte al rastreo en vivo.',
+                style: textTheme.bodyMedium?.copyWith(color: Colors.black54),
+              ),
+              const SizedBox(height: 16),
+              BlocBuilder<RouteSelectionBloc, RouteSelectionState>(
+                builder: (context, state) {
+                  if (state is RouteSelectionLoaded) {
+                    return RouteSelectorWidget(
+                      routes: state.routes,
+                      selectedRoute: state.selectedRoute,
+                      onRouteSelected: _handleRouteSelection,
+                      isLoading: false,
+                    );
+                  } else if (state is RouteSelectionError) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'No pudimos cargar las rutas (${state.message}).',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: Colors.red.shade400,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: () {
+                            context.read<RouteSelectionBloc>().add(
+                              const LoadRoutesEvent(),
+                            );
+                          },
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Intentar de nuevo'),
+                        ),
+                      ],
+                    );
+                  }
+
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMapSection(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: colorScheme.primary.withOpacity(0.08),
+                blurRadius: 30,
+                offset: const Offset(0, 20),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
             child: Stack(
               children: [
                 BlocBuilder<UserLocationBloc, UserLocationState>(
@@ -394,23 +620,36 @@ class _HomePageState extends State<HomePage> {
                       userLat = userLocationState.latitude;
                       userLng = userLocationState.longitude;
                     } else if (userLocationState is UserLocationError) {
-                      return Center(
-                        child: Text(
-                          'Error de ubicación: ${userLocationState.message}',
-                          style: const TextStyle(color: Colors.red),
-                        ),
+                      return _buildInfoMessage(
+                        context: context,
+                        icon: Icons.error_outline,
+                        title: 'No pudimos ubicarte',
+                        description: userLocationState.message,
+                        actions: [
+                          ElevatedButton(
+                            onPressed: _requestLocationPermissions,
+                            child: const Text('Intentar nuevamente'),
+                          ),
+                        ],
                       );
                     } else if (userLocationState
                         is UserLocationPermissionDenied) {
-                      return const Center(
-                        child: Text(
-                          'Permiso de ubicación denegado',
-                          style: TextStyle(color: Colors.red),
-                        ),
+                      return _buildInfoMessage(
+                        context: context,
+                        icon: Icons.privacy_tip_outlined,
+                        title: 'Permiso de ubicación denegado',
+                        description:
+                            'Activa los permisos de ubicación para rastrear tu posición actual.',
+                        actions: [
+                          ElevatedButton(
+                            onPressed: _requestLocationPermissions,
+                            child: const Text('Conceder permisos'),
+                          ),
+                        ],
                       );
                     } else if (userLocationState
                         is UserLocationServiceDisabled) {
-                      return Center(child: _buildEnableLocationPrompt(context));
+                      return _buildEnableLocationPrompt(context);
                     }
 
                     return BlocBuilder<
@@ -430,26 +669,29 @@ class _HomePageState extends State<HomePage> {
                   },
                 ),
                 Positioned(
-                  bottom: 20,
+                  bottom: 16,
                   left: 0,
                   right: 0,
-                  child: BlocBuilder<RouteSelectionBloc, RouteSelectionState>(
-                    builder: (context, state) {
-                      final hasSelectedRoute =
-                          state is RouteSelectionLoaded &&
-                          state.selectedRoute != null;
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: BlocBuilder<RouteSelectionBloc, RouteSelectionState>(
+                      builder: (context, state) {
+                        final hasSelectedRoute =
+                            state is RouteSelectionLoaded &&
+                            state.selectedRoute != null;
 
-                      return StatusMessageWidget(
-                        message: 'Selecciona la ruta que estás esperando',
-                        show: !hasSelectedRoute,
-                      );
-                    },
+                        return StatusMessageWidget(
+                          message: 'Selecciona la ruta que estás esperando',
+                          show: !hasSelectedRoute,
+                        );
+                      },
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

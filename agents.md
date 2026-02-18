@@ -15,6 +15,7 @@ Aplicación móvil Flutter para rastrear vehículos en tiempo real de rutas sele
 - **Gestor de Versiones**: FVM
 - **Mapas**: Adaptable (Google Maps / Leaflet)
 - **Comunicación en Tiempo Real**: WebSocket
+- **UI & Branding**: Paleta basada en azules vibrantes + acentos aqua, tipografía Manrope vía Google Fonts, componentes con esquinas redondeadas (24-32px) y sombras suaves
 
 ### Versiones de Android
 
@@ -63,6 +64,10 @@ Aplicación móvil Flutter para rastrear vehículos en tiempo real de rutas sele
    - Slide 2: seleccionar la ruta en el buscador
    - Slide 3: visualizar vehículos en tiempo real sobre el mapa
    - Se marca como completado en `SharedPreferences` para no mostrarlo nuevamente
+- **Home hero + cards**
+   - Encabezado degradado con mensaje de bienvenida y branding
+   - Tarjeta para selector de rutas con copy contextual
+   - Contenedor elevado para mapa con mensajes de estado estilizados
 
 ---
 
@@ -136,7 +141,7 @@ lib/
 │   │       ├── websocket_bloc.dart
 │   │       ├── websocket_event.dart
 │   │       └── websocket_state.dart
- │   ├── pages/
+│   ├── pages/
 │   │   ├── home_page.dart
 │   │   └── splash_page.dart
 │   ├── widgets/
@@ -152,8 +157,7 @@ lib/
 │       └── map_provider.dart
 │
 ├── config/
-│   ├── routes.dart
-│   ├── theme.dart
+│   ├── app_theme.dart
 │   └── service_locator.dart
 │
 └── main.dart
@@ -191,8 +195,9 @@ dependencies:
   
   # Utilidades
   equatable: ^2.0.5
-   dartz: ^0.10.1
+  dartz: ^0.10.1
   shared_preferences: ^2.2.2
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:
@@ -410,25 +415,10 @@ Responsabilidades:
 ## 🎨 Interfaz de Usuario
 
 ### Estructura de Home Page
-```
-┌─────────────────────────────────┐
-│  [Select] "Seleccionar ruta"    │
-├─────────────────────────────────┤
-│                                 │
-│                                 │
-│          MAPA                   │
-│    (usuario + vehículos)        │
-│                                 │
-│   "Selecciona la ruta que      │
-│    estás esperando"            │
-│                                 │
-└─────────────────────────────────┘
-```
-
-### Elementos Interactivos
-- **Select Dropdown**: Para seleccionar ruta
-- **Mapa**: Muestra ubicación del usuario y vehículos
-- **Mensaje de Estado**: Mostrar/ocultar según contexto
+1. **Hero Branding**: Tarjeta degradada con ícono de bus y copy motivacional.
+2. **Tarjeta de selector**: Card elevada con título, descripción y `RouteSelectorWidget` incrustado.
+3. **Mapa en contenedor elevado**: Borde redondeado (32px), sombra suave y mensajes contextuales (permisos, errores, selección de ruta) con botones de acción.
+4. **Mensajes de estado**: Componentes informativos reusables (`_buildInfoMessage`) para errores/permisos y `StatusMessageWidget` para CTA "Selecciona la ruta".
 
 ---
 

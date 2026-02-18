@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cliente/config/service_locator.dart';
+import 'package:cliente/config/app_theme.dart';
 import 'package:cliente/presentation/bloc/route_selection/route_selection_bloc.dart';
 import 'package:cliente/presentation/bloc/user_location/user_location_bloc.dart';
 import 'package:cliente/presentation/bloc/vehicle_location/vehicle_location_bloc.dart';
@@ -26,8 +27,9 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => getIt<WebSocketBloc>()),
       ],
       child: MaterialApp(
-        title: 'Rutas App',
-        theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+        title: 'Enrutados',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
         home: const SplashPage(),
       ),
     );
