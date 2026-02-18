@@ -25,10 +25,16 @@ class CacheException implements Exception {
   String toString() => 'CacheException: $message';
 }
 
+enum LocationPermissionErrorType { permissionDenied, serviceDisabled, unknown }
+
 class LocationPermissionException implements Exception {
   final String message;
+  final LocationPermissionErrorType type;
 
-  LocationPermissionException({required this.message});
+  LocationPermissionException({
+    required this.message,
+    this.type = LocationPermissionErrorType.unknown,
+  });
 
   @override
   String toString() => 'LocationPermissionException: $message';

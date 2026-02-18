@@ -27,3 +27,7 @@ class UpdateUserLocationEvent extends UserLocationEvent {
 class StartListeningLocationEvent extends UserLocationEvent {
   const StartListeningLocationEvent();
 }
+
+class EnableLocationServicesEvent extends UserLocationEvent {
+  const EnableLocationServicesEvent();
+}

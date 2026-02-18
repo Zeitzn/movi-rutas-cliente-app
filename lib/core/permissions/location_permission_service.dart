@@ -9,6 +9,7 @@ abstract class LocationPermissionService {
     required Duration updateInterval,
     required int distanceFilter,
   });
+  Future<void> enableLocationService();
 }
 
 class LocationPermissionServiceImpl implements LocationPermissionService {
@@ -21,11 +22,14 @@ class LocationPermissionServiceImpl implements LocationPermissionService {
           permission == LocationPermission.deniedForever) {
         throw LocationPermissionException(
           message: 'Location permission denied',
+          type: LocationPermissionErrorType.permissionDenied,
         );
       }
 
       return permission == LocationPermission.whileInUse ||
           permission == LocationPermission.always;
+    } on LocationPermissionException {
+      rethrow;
     } catch (e) {
       throw LocationPermissionException(
         message: 'Failed to request location permission: ${e.toString()}',
@@ -37,6 +41,8 @@ class LocationPermissionServiceImpl implements LocationPermissionService {
   Future<bool> isLocationEnabled() async {
     try {
       return await Geolocator.isLocationServiceEnabled();
+    } on LocationPermissionException {
+      rethrow;
     } catch (e) {
       throw LocationPermissionException(
         message: 'Failed to check location service: ${e.toString()}',
@@ -51,6 +57,7 @@ class LocationPermissionServiceImpl implements LocationPermissionService {
       if (!isEnabled) {
         throw LocationPermissionException(
           message: 'Location service is disabled',
+          type: LocationPermissionErrorType.serviceDisabled,
         );
       }
 
@@ -59,12 +66,15 @@ class LocationPermissionServiceImpl implements LocationPermissionService {
           permission == LocationPermission.deniedForever) {
         throw LocationPermissionException(
           message: 'Location permission not granted',
+          type: LocationPermissionErrorType.permissionDenied,
         );
       }
 
       return await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.best,
       );
+    } on LocationPermissionException {
+      rethrow;
     } catch (e) {
       throw LocationPermissionException(
         message: 'Failed to get current location: ${e.toString()}',
@@ -78,5 +88,25 @@ class LocationPermissionServiceImpl implements LocationPermissionService {
     required int distanceFilter,
   }) {
     return Geolocator.getPositionStream();
+  }
+
+  @override
+  Future<void> enableLocationService() async {
+    try {
+      final isEnabled = await Geolocator.isLocationServiceEnabled();
+      if (isEnabled) {
+        return;
+      }
+
+      final openedSettings = await Geolocator.openLocationSettings();
+      if (!openedSettings) {
+        await Geolocator.openAppSettings();
+      }
+    } catch (e) {
+      throw LocationPermissionException(
+        message: 'Failed to enable location service: ${e.toString()}',
+        type: LocationPermissionErrorType.serviceDisabled,
+      );
+    }
   }
 }

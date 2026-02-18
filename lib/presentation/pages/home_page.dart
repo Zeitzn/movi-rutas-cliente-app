@@ -77,6 +77,41 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Widget _buildEnableLocationPrompt(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.location_off, size: 48, color: Colors.redAccent),
+          const SizedBox(height: 16),
+          const Text(
+            'Necesitamos que actives el servicio de ubicación para continuar.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                context.read<UserLocationBloc>().add(
+                  const EnableLocationServicesEvent(),
+                );
+              },
+              child: const Text('Activar ubicación'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          const Text(
+            'Intentaremos encenderla automáticamente o te llevaremos a la configuración.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -138,6 +173,9 @@ class _HomePageState extends State<HomePage> {
                           style: TextStyle(color: Colors.red),
                         ),
                       );
+                    } else if (userLocationState
+                        is UserLocationServiceDisabled) {
+                      return Center(child: _buildEnableLocationPrompt(context));
                     }
 
                     return BlocBuilder<

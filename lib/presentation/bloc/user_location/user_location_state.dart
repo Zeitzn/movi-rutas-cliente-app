@@ -37,3 +37,7 @@ class UserLocationError extends UserLocationState {
 class UserLocationPermissionDenied extends UserLocationState {
   const UserLocationPermissionDenied();
 }
+
+class UserLocationServiceDisabled extends UserLocationState {
+  const UserLocationServiceDisabled();
+}
