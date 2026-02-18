@@ -526,65 +526,94 @@ class _HomePageState extends State<HomePage> {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Card(
-        margin: EdgeInsets.zero,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '¿A qué ruta quieres hacer seguimiento hoy?',
-                style: textTheme.titleMedium,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Selecciona una ruta para conectarte al rastreo en vivo.',
-                style: textTheme.bodyMedium?.copyWith(color: Colors.black54),
-              ),
-              const SizedBox(height: 16),
-              BlocBuilder<RouteSelectionBloc, RouteSelectionState>(
-                builder: (context, state) {
-                  if (state is RouteSelectionLoaded) {
-                    return RouteSelectorWidget(
+      child: BlocBuilder<RouteSelectionBloc, RouteSelectionState>(
+        builder: (context, state) {
+          if (state is RouteSelectionLoaded) {
+            final isCollapsed = state.selectedRoute != null;
+
+            return Card(
+              margin: EdgeInsets.zero,
+              child: AnimatedPadding(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                padding: EdgeInsets.fromLTRB(20, isCollapsed ? 12 : 20, 20, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      switchInCurve: Curves.easeOut,
+                      switchOutCurve: Curves.easeIn,
+                      child: isCollapsed
+                          ? const SizedBox.shrink(key: ValueKey('collapsed'))
+                          : Column(
+                              key: const ValueKey('expanded'),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '¿A qué ruta quieres hacer seguimiento hoy?',
+                                  style: textTheme.titleMedium,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Selecciona una ruta para conectarte al rastreo en vivo.',
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                            ),
+                    ),
+                    RouteSelectorWidget(
                       routes: state.routes,
                       selectedRoute: state.selectedRoute,
                       onRouteSelected: _handleRouteSelection,
                       isLoading: false,
-                    );
-                  } else if (state is RouteSelectionError) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'No pudimos cargar las rutas (${state.message}).',
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: Colors.red.shade400,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        TextButton.icon(
-                          onPressed: () {
-                            context.read<RouteSelectionBloc>().add(
-                              const LoadRoutesEvent(),
-                            );
-                          },
-                          icon: const Icon(Icons.refresh),
-                          label: const Text('Intentar de nuevo'),
-                        ),
-                      ],
-                    );
-                  }
-
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                },
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
+            );
+          } else if (state is RouteSelectionError) {
+            return Card(
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'No pudimos cargar las rutas (${state.message}).',
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: Colors.red.shade400,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: () {
+                        context.read<RouteSelectionBloc>().add(
+                          const LoadRoutesEvent(),
+                        );
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Intentar de nuevo'),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          return const Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          );
+        },
       ),
     );
   }
