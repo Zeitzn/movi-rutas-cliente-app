@@ -6,6 +6,7 @@ import 'package:cliente/presentation/bloc/user_location/user_location_bloc.dart'
 import 'package:cliente/presentation/bloc/vehicle_location/vehicle_location_bloc.dart';
 import 'package:cliente/presentation/bloc/websocket/websocket_bloc.dart';
 import 'package:cliente/presentation/pages/home_page.dart';
+import 'package:cliente/presentation/pages/splash_page.dart';
 
 void main() {
   setupServiceLocator();
@@ -17,17 +18,17 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Rutas App',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: MultiBlocProvider(
-        providers: [
-          BlocProvider(create: (context) => getIt<RouteSelectionBloc>()),
-          BlocProvider(create: (context) => getIt<UserLocationBloc>()),
-          BlocProvider(create: (context) => getIt<VehicleLocationBloc>()),
-          BlocProvider(create: (context) => getIt<WebSocketBloc>()),
-        ],
-        child: const HomePage(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => getIt<RouteSelectionBloc>()),
+        BlocProvider(create: (context) => getIt<UserLocationBloc>()),
+        BlocProvider(create: (context) => getIt<VehicleLocationBloc>()),
+        BlocProvider(create: (context) => getIt<WebSocketBloc>()),
+      ],
+      child: MaterialApp(
+        title: 'Rutas App',
+        theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+        home: const SplashPage(),
       ),
     );
   }

@@ -52,7 +52,12 @@ Aplicación móvil Flutter para rastrear vehículos en tiempo real de rutas sele
    - "Selecciona la ruta que estás esperando" (estado inicial)
    - Se oculta al seleccionar una ruta
 
-6. **Onboarding Guiado (Slides)**
+6. **Splash Screen**
+   - Pantalla inicial con ícono de bus centrado y texto "Enrutados"
+   - Se muestra durante la inicialización (2s) antes de entrar a la app
+   - Sirve como transición hacia el flujo de onboarding / permisos
+
+7. **Onboarding Guiado (Slides)**
    - Solo se muestra al ingresar por primera vez
    - Slide 1: habilitar servicios/permisos de ubicación con botón "Activar" que dispara la solicitud real de permisos
    - Slide 2: seleccionar la ruta en el buscador
@@ -131,8 +136,9 @@ lib/
 │   │       ├── websocket_bloc.dart
 │   │       ├── websocket_event.dart
 │   │       └── websocket_state.dart
-│   ├── pages/
-│   │   └── home_page.dart
+ │   ├── pages/
+│   │   ├── home_page.dart
+│   │   └── splash_page.dart
 │   ├── widgets/
 │   │   ├── map/
 │   │   │   ├── abstract_map_widget.dart
@@ -591,5 +597,5 @@ fvm flutter pub get
 
 ---
 
-**Última actualización**: 17 de febrero de 2026 (onboarding con slides + servicios de ubicación)  
+**Última actualización**: 17 de febrero de 2026 (splash + onboarding con slides + servicios de ubicación)  
 **Estado**: Documento de planificación inicial
