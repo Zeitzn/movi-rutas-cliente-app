@@ -1,0 +1,49 @@
+
+# FVM Version Cache
+.fvm/
+# Flutter build outputs
+build/
+# Dart tool outputs
+.dart_tool/
+.packages
+.pub/
+.idea/
+.metadata
+pubspec.lock
+# Android Studio
+*.iml
+.gradle/
+local.properties
+# iOS
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/flutter_assets/
+ios/Flutter/flutter_export_environment.sh
+ios/ServiceDefinitions.json
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Runner/GoogleService-Info.plist
+
+# macOS
+.DS_Store
+macos/Flutter/Flutter.framework
+macos/Flutter/Flutter.podspec
+macos/Flutter/Generated.xcconfig
+macos/Flutter/ephemeral/
+macos/Flutter/app.flx
+macos/Flutter/app.zip
+macos/Flutter/flutter_assets/
+macos/Flutter/flutter_export_environment.sh
+macos/ServiceDefinitions.json
+macos/Runner/GeneratedPluginRegistrant.*
+macos/Runner/GoogleService-Info.plist
+
+# Windows
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
+windows/flutter/generated_plugins.cmake
+windows/flutter/generated_plugin_registrant.cc
+windows/flutter/generated_plugin_registrant.h
+windows/flutter/generated_plugins.cmake
