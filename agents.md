@@ -52,6 +52,13 @@ Aplicación móvil Flutter para rastrear vehículos en tiempo real de rutas sele
    - "Selecciona la ruta que estás esperando" (estado inicial)
    - Se oculta al seleccionar una ruta
 
+6. **Onboarding Guiado (Slides)**
+   - Solo se muestra al ingresar por primera vez
+   - Slide 1: habilitar servicios/permisos de ubicación con botón "Activar" que dispara la solicitud real de permisos
+   - Slide 2: seleccionar la ruta en el buscador
+   - Slide 3: visualizar vehículos en tiempo real sobre el mapa
+   - Se marca como completado en `SharedPreferences` para no mostrarlo nuevamente
+
 ---
 
 ## 🏗️ Estructura de Carpetas
@@ -178,7 +185,8 @@ dependencies:
   
   # Utilidades
   equatable: ^2.0.5
-  dartz: ^0.10.1
+   dartz: ^0.10.1
+  shared_preferences: ^2.2.2
 
 dev_dependencies:
   flutter_test:
@@ -297,12 +305,17 @@ Eventos:
 ```
 Estados:
 - UserLocationInitial
+- UserLocationLoading
 - UserLocationUpdated (lat, lng)
 - UserLocationError
+- UserLocationPermissionDenied
+- UserLocationServiceDisabled
 
 Eventos:
 - RequestPermissionsEvent
 - UpdateUserLocationEvent(lat, lng)
+- StartListeningLocationEvent
+- EnableLocationServicesEvent
 ```
 
 ---
@@ -373,6 +386,13 @@ Responsabilidades:
 4. Si se otorga: obtiene ubicación actual
 5. UserLocationBloc emite UserLocationUpdated
 6. Mapa se centra en ubicación del usuario
+
+> En el primer arranque, la solicitud de permisos se realiza desde el slide inicial del onboarding al pulsar "Activar ubicación".
+
+### Manejo de Servicios Desactivados
+- Si el GPS está apagado, se emite `UserLocationServiceDisabled`
+- La UI muestra un mensaje con botón "Activar ubicación" que intenta habilitarla desde la app o abre la configuración
+- Tras activarla, se vuelve a disparar `RequestPermissionsEvent`
 
 ### Actualización Continua
 - Listener activo en background
@@ -571,5 +591,5 @@ fvm flutter pub get
 
 ---
 
-**Última actualización**: 17 de febrero de 2026  
+**Última actualización**: 17 de febrero de 2026 (onboarding con slides + servicios de ubicación)  
 **Estado**: Documento de planificación inicial

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cliente/core/constants/map_constants.dart';
+import 'package:cliente/domain/entities/vehicle_location_entity.dart';
 import 'package:cliente/presentation/bloc/route_selection/route_selection_bloc.dart';
 import 'package:cliente/presentation/bloc/route_selection/route_selection_event.dart';
 import 'package:cliente/presentation/bloc/route_selection/route_selection_state.dart';
@@ -16,8 +19,6 @@ import 'package:cliente/presentation/widgets/map/google_map_widget.dart';
 import 'package:cliente/presentation/widgets/map/leaflet_map_widget.dart';
 import 'package:cliente/presentation/widgets/route_selector/route_selector_widget.dart';
 import 'package:cliente/presentation/widgets/status_message/status_message_widget.dart';
-import 'package:cliente/core/constants/map_constants.dart';
-import 'package:cliente/domain/entities/vehicle_location_entity.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,11 +28,207 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  static const _onboardingSeenKey = 'onboarding_seen';
+
   @override
   void initState() {
     super.initState();
-    context.read<UserLocationBloc>().add(const RequestPermissionsEvent());
     context.read<RouteSelectionBloc>().add(const LoadRoutesEvent());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeOnboarding();
+    });
+  }
+
+  Future<void> _initializeOnboarding() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenStepper = prefs.getBool(_onboardingSeenKey) ?? false;
+
+    if (!mounted) return;
+
+    if (!hasSeenStepper) {
+      await _showOnboardingSlides();
+    } else {
+      _requestLocationPermissions();
+    }
+  }
+
+  Future<void> _markOnboardingSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingSeenKey, true);
+  }
+
+  void _requestLocationPermissions() {
+    if (!mounted) return;
+    context.read<UserLocationBloc>().add(const RequestPermissionsEvent());
+  }
+
+  Future<void> _showOnboardingSlides() async {
+    if (!mounted) return;
+
+    final pageController = PageController();
+    int currentPage = 0;
+    bool locationRequested = false;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            final slideWidgets = [
+              _buildOnboardingSlide(
+                context: context,
+                icon: Icons.my_location,
+                title: 'Activa la ubicación',
+                description:
+                    'Enciende los servicios de ubicación y otorga permisos para que podamos localizarte con precisión.',
+                extra: [
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (!locationRequested) {
+                          setStateDialog(() {
+                            locationRequested = true;
+                          });
+                        }
+                        _requestLocationPermissions();
+                      },
+                      child: const Text('Activar ubicación'),
+                    ),
+                  ),
+                  if (locationRequested) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 4,
+                      children: [
+                        const Icon(
+                          Icons.check_circle,
+                          color: Colors.green,
+                          size: 20,
+                        ),
+                        SizedBox(
+                          width: 220,
+                          child: Text(
+                            'Revisa la ventana del sistema y acepta para continuar.',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+              _buildOnboardingSlide(
+                context: context,
+                icon: Icons.search,
+                title: 'Selecciona tu ruta',
+                description:
+                    'Utiliza el buscador para elegir la ruta que deseas rastrear. Podemos conectarnos a la ruta solo después de seleccionarla.',
+              ),
+              _buildOnboardingSlide(
+                context: context,
+                icon: Icons.map,
+                title: 'Observa los vehículos',
+                description:
+                    'Una vez conectados, verás en el mapa la ubicación en tiempo real de los buses y su movimiento.',
+              ),
+            ];
+
+            final isLastPage = currentPage == slideWidgets.length - 1;
+            final canGoNext = currentPage == 0 ? locationRequested : true;
+            final dialogHeight = (MediaQuery.of(context).size.height * 0.6)
+                .clamp(320.0, 480.0);
+            final pagePhysics = currentPage == 0 && !locationRequested
+                ? const NeverScrollableScrollPhysics()
+                : const BouncingScrollPhysics();
+
+            return AlertDialog(
+              title: const Text('Cómo usar la app'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: SizedBox(
+                  height: dialogHeight,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: PageView(
+                          controller: pageController,
+                          physics: pagePhysics,
+                          onPageChanged: (index) {
+                            setStateDialog(() {
+                              currentPage = index;
+                            });
+                          },
+                          children: slideWidgets,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(slideWidgets.length, (index) {
+                          final isActive = currentPage == index;
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            height: 8,
+                            width: isActive ? 24 : 8,
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? Theme.of(context).colorScheme.primary
+                                  : Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                if (currentPage > 0)
+                  TextButton(
+                    onPressed: () {
+                      pageController.previousPage(
+                        duration: const Duration(milliseconds: 300),
+                        curve: Curves.easeInOut,
+                      );
+                    },
+                    child: const Text('Anterior'),
+                  ),
+                ElevatedButton(
+                  onPressed: canGoNext
+                      ? () async {
+                          if (isLastPage) {
+                            await _markOnboardingSeen();
+                            if (!mounted) return;
+                            Navigator.of(dialogContext).pop();
+                            _requestLocationPermissions();
+                          } else {
+                            pageController.nextPage(
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          }
+                        }
+                      : null,
+                  child: Text(isLastPage ? 'Entendido' : 'Siguiente'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    pageController.dispose();
   }
 
   void _handleRouteSelection(dynamic selectedRoute) {
@@ -75,6 +272,44 @@ class _HomePageState extends State<HomePage> {
         vehicleLocations: vehicles,
       );
     }
+  }
+
+  Widget _buildOnboardingSlide({
+    required BuildContext context,
+    required IconData icon,
+    required String title,
+    required String description,
+    List<Widget> extra = const [],
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 64, color: colorScheme.primary),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              textAlign: TextAlign.center,
+              style: textTheme.bodyMedium,
+            ),
+            ...extra,
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildEnableLocationPrompt(BuildContext context) {
