@@ -37,6 +37,7 @@ Aplicación móvil Flutter para rastrear vehículos en tiempo real de rutas sele
    - Mostrar ubicación actual del usuario
    - Marcar posiciones de vehículos en tiempo real
    - Adaptable entre Google Maps y Leaflet sin cambios mayores
+   - Botón flotante "Centrar" para volver a la ubicación actual (solo mueve la cámara cuando el usuario lo solicita)
 
 3. **Selector de Rutas**
    - Dropdown con placeholder "Seleccionar ruta"

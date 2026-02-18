@@ -9,11 +9,17 @@ class GoogleMapWidget extends AbstractMapWidget {
     required double userLatitude,
     required double userLongitude,
     required List<VehicleLocationEntity> vehicleLocations,
+    required bool followUserLocation,
+    required int recenterTrigger,
+    required VoidCallback onMapInteraction,
     Key? key,
   }) : super(
          userLatitude: userLatitude,
          userLongitude: userLongitude,
          vehicleLocations: vehicleLocations,
+         followUserLocation: followUserLocation,
+         recenterTrigger: recenterTrigger,
+         onMapInteraction: onMapInteraction,
          key: key,
        );
 
@@ -22,7 +28,7 @@ class GoogleMapWidget extends AbstractMapWidget {
 }
 
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
-  late GoogleMapController _controller;
+  GoogleMapController? _controller;
   late Set<Marker> _markers;
 
   @override
@@ -38,6 +44,17 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
         oldWidget.userLongitude != widget.userLongitude ||
         oldWidget.vehicleLocations != widget.vehicleLocations) {
       _updateMarkers();
+    }
+
+    final shouldRecentre =
+        widget.followUserLocation &&
+        (_controller != null) &&
+        (oldWidget.userLatitude != widget.userLatitude ||
+            oldWidget.userLongitude != widget.userLongitude ||
+            oldWidget.recenterTrigger != widget.recenterTrigger);
+
+    if (shouldRecentre) {
+      _animateToUser();
     }
   }
 
@@ -72,6 +89,17 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     }
   }
 
+  void _animateToUser() {
+    _controller?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: LatLng(widget.userLatitude, widget.userLongitude),
+          zoom: MapConstants.initialZoom,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return GoogleMap(
@@ -81,11 +109,15 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       ),
       onMapCreated: (controller) {
         _controller = controller;
+        if (widget.followUserLocation) {
+          _animateToUser();
+        }
       },
+      onCameraMoveStarted: widget.onMapInteraction,
       markers: _markers,
       myLocationEnabled: true,
-      myLocationButtonEnabled: true,
-      zoomControlsEnabled: true,
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
     );
   }
 }

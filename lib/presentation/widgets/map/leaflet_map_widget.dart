@@ -10,11 +10,17 @@ class LeafletMapWidget extends AbstractMapWidget {
     required double userLatitude,
     required double userLongitude,
     required List<VehicleLocationEntity> vehicleLocations,
+    required bool followUserLocation,
+    required int recenterTrigger,
+    required VoidCallback onMapInteraction,
     Key? key,
   }) : super(
          userLatitude: userLatitude,
          userLongitude: userLongitude,
          vehicleLocations: vehicleLocations,
+         followUserLocation: followUserLocation,
+         recenterTrigger: recenterTrigger,
+         onMapInteraction: onMapInteraction,
          key: key,
        );
 
@@ -40,10 +46,21 @@ class _LeafletMapWidgetState extends State<LeafletMapWidget> {
         oldWidget.userLongitude != widget.userLongitude ||
         oldWidget.vehicleLocations != widget.vehicleLocations) {
       _updateMarkers();
-      _mapController.move(
-        LatLng(widget.userLatitude, widget.userLongitude),
-        MapConstants.initialZoom,
-      );
+    }
+
+    final shouldRecentre =
+        widget.followUserLocation &&
+        (oldWidget.userLatitude != widget.userLatitude ||
+            oldWidget.userLongitude != widget.userLongitude ||
+            oldWidget.recenterTrigger != widget.recenterTrigger);
+
+    if (shouldRecentre) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _mapController.move(
+          LatLng(widget.userLatitude, widget.userLongitude),
+          MapConstants.initialZoom,
+        );
+      });
     }
   }
 
@@ -111,6 +128,12 @@ class _LeafletMapWidgetState extends State<LeafletMapWidget> {
         initialZoom: MapConstants.initialZoom,
         maxZoom: MapConstants.maxZoom,
         minZoom: MapConstants.minZoom,
+        onPointerDown: (event, point) => widget.onMapInteraction(),
+        onMapEvent: (event) {
+          if (event is MapEventMoveStart) {
+            widget.onMapInteraction();
+          }
+        },
       ),
       children: [
         TileLayer(

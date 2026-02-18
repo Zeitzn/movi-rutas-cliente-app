@@ -29,6 +29,8 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   static const _onboardingSeenKey = 'onboarding_seen';
+  bool _followUserLocation = true;
+  int _recenterTrigger = 0;
 
   @override
   void initState() {
@@ -59,6 +61,9 @@ class _HomePageState extends State<HomePage> {
 
   void _requestLocationPermissions() {
     if (!mounted) return;
+    setState(() {
+      _followUserLocation = true;
+    });
     context.read<UserLocationBloc>().add(const RequestPermissionsEvent());
   }
 
@@ -264,12 +269,18 @@ class _HomePageState extends State<HomePage> {
         userLatitude: userLat,
         userLongitude: userLng,
         vehicleLocations: vehicles,
+        followUserLocation: _followUserLocation,
+        recenterTrigger: _recenterTrigger,
+        onMapInteraction: _handleMapInteraction,
       );
     } else {
       return LeafletMapWidget(
         userLatitude: userLat,
         userLongitude: userLng,
         vehicleLocations: vehicles,
+        followUserLocation: _followUserLocation,
+        recenterTrigger: _recenterTrigger,
+        onMapInteraction: _handleMapInteraction,
       );
     }
   }
@@ -644,10 +655,12 @@ class _HomePageState extends State<HomePage> {
                   builder: (context, userLocationState) {
                     double userLat = MapConstants.defaultLatitude;
                     double userLng = MapConstants.defaultLongitude;
+                    bool hasUserLocation = false;
 
                     if (userLocationState is UserLocationUpdated) {
                       userLat = userLocationState.latitude;
                       userLng = userLocationState.longitude;
+                      hasUserLocation = true;
                     } else if (userLocationState is UserLocationError) {
                       return _buildInfoMessage(
                         context: context,
@@ -692,7 +705,20 @@ class _HomePageState extends State<HomePage> {
                           vehicles = vehicleLocationState.locations;
                         }
 
-                        return _buildMapWidget(userLat, userLng, vehicles);
+                        return Stack(
+                          children: [
+                            _buildMapWidget(userLat, userLng, vehicles),
+                            Positioned(
+                              right: 16,
+                              bottom: 100,
+                              child: _buildCurrentLocationButton(
+                                context,
+                                enabled: hasUserLocation,
+                                isActive: _followUserLocation,
+                              ),
+                            ),
+                          ],
+                        );
                       },
                     );
                   },
@@ -723,5 +749,59 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  Widget _buildCurrentLocationButton(
+    BuildContext context, {
+    required bool enabled,
+    required bool isActive,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Tooltip(
+      message: 'Centrar en mi ubicación',
+      child: InkWell(
+        onTap: enabled
+            ? () {
+                setState(() {
+                  _followUserLocation = true;
+                  _recenterTrigger++;
+                });
+              }
+            : null,
+        borderRadius: BorderRadius.circular(28),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: enabled
+                ? (isActive ? colorScheme.primary : Colors.white)
+                : Colors.white.withOpacity(0.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.15),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Icon(
+            Icons.my_location,
+            color: enabled
+                ? (isActive ? Colors.white : colorScheme.primary)
+                : Colors.grey,
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _handleMapInteraction() {
+    if (_followUserLocation) {
+      setState(() {
+        _followUserLocation = false;
+      });
+    }
   }
 }
