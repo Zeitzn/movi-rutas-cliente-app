@@ -15,7 +15,6 @@ import 'package:cliente/presentation/bloc/vehicle_location/vehicle_location_stat
 import 'package:cliente/presentation/utils/map_provider.dart';
 import 'package:cliente/presentation/widgets/map/google_map_widget.dart';
 import 'package:cliente/presentation/widgets/map/leaflet_map_widget.dart';
-import 'package:cliente/presentation/widgets/route_selector/route_selector_widget.dart';
 import 'package:cliente/presentation/widgets/status_message/status_message_widget.dart';
 
 class HomePage extends StatefulWidget {
@@ -253,6 +252,76 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  void _showRouteDropdown(BuildContext context, RouteSelectionLoaded state) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Selecciona una ruta',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Text(
+                  'Elige una ruta para ver buses en tiempo real',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: state.routes.length,
+                  itemBuilder: (context, index) {
+                    final route = state.routes[index];
+                    return ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.directions_bus,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(route.name),
+                      onTap: () {
+                        Navigator.pop(context);
+                        _handleRouteSelection(route);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildMapWidget(
     double userLat,
     double userLng,
@@ -430,29 +499,18 @@ class _HomePageState extends State<HomePage> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              colorScheme.primary.withOpacity(0.12),
-              colorScheme.surface,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              _buildHeader(context),
-              const SizedBox(height: 20),
-              _buildRouteSelectorCard(context),
-              const SizedBox(height: 16),
-              _buildMapSection(context),
-            ],
-          ),
+      backgroundColor: colorScheme.surface,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 16),
+            _buildHeader(context),
+            const SizedBox(height: 20),
+            _buildRouteSelectorCard(context),
+            const SizedBox(height: 16),
+            _buildMapSection(context),
+          ],
         ),
       ),
     );
@@ -463,159 +521,226 @@ class _HomePageState extends State<HomePage> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(28),
-          gradient: LinearGradient(
-            colors: [
-              colorScheme.primary,
-              colorScheme.primary.withOpacity(0.78),
-            ],
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.directions_bus_rounded,
+              color: colorScheme.primary,
+              size: 28,
+            ),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.primary.withOpacity(0.25),
-              blurRadius: 26,
-              offset: const Offset(0, 18),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.2),
-              ),
-              child: const Icon(
-                Icons.directions_bus_rounded,
-                color: Colors.white,
-                size: 34,
-              ),
-            ),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Enrutados',
-                    style: textTheme.titleMedium?.copyWith(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w600,
-                    ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Enrutados',
+                  style: textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Planifica y monitorea tus rutas en tiempo real.',
-                    style: textTheme.bodyMedium?.copyWith(
-                      color: Colors.white,
-                      height: 1.3,
-                    ),
+                ),
+                Text(
+                  'Monitorea tus rutas en tiempo real',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: Colors.grey.shade600,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildRouteSelectorCard(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       child: BlocBuilder<RouteSelectionBloc, RouteSelectionState>(
         builder: (context, state) {
           if (state is RouteSelectionLoaded) {
             final isCollapsed = state.selectedRoute != null;
 
-            return Card(
-              margin: EdgeInsets.zero,
-              child: AnimatedPadding(
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-                padding: EdgeInsets.fromLTRB(20, isCollapsed ? 12 : 20, 20, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
-                      switchInCurve: Curves.easeOut,
-                      switchOutCurve: Curves.easeIn,
-                      child: isCollapsed
-                          ? const SizedBox.shrink(key: ValueKey('collapsed'))
-                          : Column(
-                              key: const ValueKey('expanded'),
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '¿A qué ruta quieres hacer seguimiento hoy?',
-                                  style: textTheme.titleMedium,
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Selecciona una ruta para conectarte al rastreo en vivo.',
-                                  style: textTheme.bodyMedium?.copyWith(
-                                    color: Colors.black54,
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(20),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: isCollapsed ? () => _handleRouteSelection(null) : null,
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      isCollapsed ? 12 : 16,
+                      16,
+                      isCollapsed ? 12 : 16,
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primary.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            isCollapsed ? Icons.check_circle : Icons.search,
+                            color: colorScheme.primary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: isCollapsed
+                                ? Column(
+                                    key: const ValueKey('collapsed'),
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        'Ruta seleccionada',
+                                        style: textTheme.bodySmall?.copyWith(
+                                          color: Colors.grey.shade500,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                      Text(
+                                        state.selectedRoute?.name ?? '',
+                                        style: textTheme.titleMedium?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Column(
+                                    key: const ValueKey('expanded'),
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Selecciona tu ruta',
+                                        style: textTheme.titleSmall?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        'Elige una ruta para ver buses en tiempo real',
+                                        style: textTheme.bodySmall?.copyWith(
+                                          color: Colors.grey.shade500,
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                ),
-                                const SizedBox(height: 16),
-                              ],
+                          ),
+                        ),
+                        if (isCollapsed)
+                          GestureDetector(
+                            onTap: () => _handleRouteSelection(null),
+                            child: Icon(
+                              Icons.close,
+                              color: Colors.grey.shade400,
+                              size: 20,
                             ),
+                          )
+                        else
+                          GestureDetector(
+                            onTap: () => _showRouteDropdown(context, state),
+                            child: Icon(
+                              Icons.keyboard_arrow_down,
+                              color: colorScheme.primary,
+                              size: 24,
+                            ),
+                          ),
+                      ],
                     ),
-                    RouteSelectorWidget(
-                      routes: state.routes,
-                      selectedRoute: state.selectedRoute,
-                      onRouteSelected: _handleRouteSelection,
-                      isLoading: false,
-                    ),
-                  ],
+                  ),
                 ),
               ),
             );
           } else if (state is RouteSelectionError) {
-            return Card(
-              margin: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'No pudimos cargar las rutas (${state.message}).',
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red.shade400),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Error al cargar rutas',
                       style: textTheme.bodyMedium?.copyWith(
-                        color: Colors.red.shade400,
+                        color: Colors.red.shade700,
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    TextButton.icon(
-                      onPressed: () {
-                        context.read<RouteSelectionBloc>().add(
-                          const LoadRoutesEvent(),
-                        );
-                      },
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Intentar de nuevo'),
-                    ),
-                  ],
-                ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      context.read<RouteSelectionBloc>().add(
+                        const LoadRoutesEvent(),
+                      );
+                    },
+                    child: const Text('Reintentar'),
+                  ),
+                ],
               ),
             );
           }
 
-          return const Card(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 24),
-              child: Center(child: CircularProgressIndicator()),
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Cargando rutas...',
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -624,25 +749,23 @@ class _HomePageState extends State<HomePage> {
   }
 
   Widget _buildMapSection(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(28),
             color: Colors.white,
             boxShadow: [
               BoxShadow(
-                color: colorScheme.primary.withOpacity(0.08),
-                blurRadius: 30,
-                offset: const Offset(0, 20),
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 8),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(28),
             child: Stack(
               children: [
                 BlocBuilder<UserLocationBloc, UserLocationState>(
@@ -756,29 +879,37 @@ class _HomePageState extends State<HomePage> {
                               child: Center(
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
+                                    horizontal: 14,
+                                    vertical: 8,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Colors.green.shade100,
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: Colors.green.shade400,
-                                    ),
+                                    color: Colors.green.shade600,
+                                    borderRadius: BorderRadius.circular(20),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.green.shade600
+                                            .withOpacity(0.3),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Icon(
-                                        Icons.wifi,
-                                        size: 16,
-                                        color: Colors.green.shade700,
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
                                       ),
-                                      const SizedBox(width: 6),
-                                      Text(
+                                      const SizedBox(width: 8),
+                                      const Text(
                                         'Conectado',
                                         style: TextStyle(
-                                          color: Colors.green.shade700,
+                                          color: Colors.white,
                                           fontWeight: FontWeight.w600,
                                           fontSize: 13,
                                         ),
@@ -807,39 +938,38 @@ class _HomePageState extends State<HomePage> {
   }) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Tooltip(
-      message: 'Centrar en mi ubicación',
-      child: InkWell(
-        onTap: enabled
-            ? () {
-                setState(() {
-                  _followUserLocation = true;
-                  _recenterTrigger++;
-                });
-              }
-            : null,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      child: Material(
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(28),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: enabled
-                ? (isActive ? colorScheme.primary : Colors.white)
-                : Colors.white.withOpacity(0.5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.15),
-                blurRadius: 18,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Icon(
-            Icons.my_location,
-            color: enabled
-                ? (isActive ? Colors.white : colorScheme.primary)
-                : Colors.grey,
+        elevation: 4,
+        shadowColor: Colors.black26,
+        child: InkWell(
+          onTap: enabled
+              ? () {
+                  setState(() {
+                    _followUserLocation = true;
+                    _recenterTrigger++;
+                  });
+                }
+              : null,
+          borderRadius: BorderRadius.circular(28),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: enabled
+                  ? (isActive ? colorScheme.primary : Colors.white)
+                  : Colors.white.withOpacity(0.5),
+            ),
+            child: Icon(
+              Icons.my_location,
+              color: enabled
+                  ? (isActive ? Colors.white : colorScheme.primary)
+                  : Colors.grey,
+              size: 24,
+            ),
           ),
         ),
       ),
