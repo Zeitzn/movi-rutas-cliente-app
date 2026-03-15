@@ -12,8 +12,6 @@ import 'package:cliente/presentation/bloc/user_location/user_location_state.dart
 import 'package:cliente/presentation/bloc/vehicle_location/vehicle_location_bloc.dart';
 import 'package:cliente/presentation/bloc/vehicle_location/vehicle_location_event.dart';
 import 'package:cliente/presentation/bloc/vehicle_location/vehicle_location_state.dart';
-import 'package:cliente/presentation/bloc/websocket/websocket_bloc.dart';
-import 'package:cliente/presentation/bloc/websocket/websocket_event.dart';
 import 'package:cliente/presentation/utils/map_provider.dart';
 import 'package:cliente/presentation/widgets/map/google_map_widget.dart';
 import 'package:cliente/presentation/widgets/map/leaflet_map_widget.dart';
@@ -240,21 +238,17 @@ class _HomePageState extends State<HomePage> {
     if (selectedRoute == null) {
       // Desseleccionar ruta
       context.read<RouteSelectionBloc>().add(const DeselectRouteEvent());
-      context.read<WebSocketBloc>().add(const DisconnectWebSocketEvent());
+      context.read<VehicleLocationBloc>().add(
+        const StopWebSocketListeningEvent(),
+      );
       context.read<VehicleLocationBloc>().add(const ClearLocationsEvent());
     } else {
       // Seleccionar ruta
       context.read<RouteSelectionBloc>().add(
         SelectRouteEvent(route: selectedRoute),
       );
-      context.read<WebSocketBloc>().add(
-        ConnectWebSocketEvent(
-          routeId: selectedRoute.id,
-          websocketUrl: selectedRoute.websocketUrl,
-        ),
-      );
       context.read<VehicleLocationBloc>().add(
-        ListenVehicleLocationsEvent(routeId: selectedRoute.id),
+        const StartWebSocketListeningEvent(),
       );
     }
   }

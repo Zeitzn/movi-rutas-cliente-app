@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:cliente/core/network/api_client.dart';
 import 'package:cliente/core/network/websocket_service.dart';
 import 'package:cliente/core/permissions/location_permission_service.dart';
+import 'package:cliente/services/websocket_subscriber_service.dart';
 
 // Data
 import 'package:cliente/data/datasources/remote/mock_routes_datasource.dart';
@@ -70,8 +71,14 @@ void setupServiceLocator() {
   getIt.registerSingleton<WebSocketBloc>(
     WebSocketBloc(webSocketService: getIt<WebSocketService>()),
   );
+  getIt.registerSingleton<WebSocketSubscriberService>(
+    WebSocketSubscriberService(),
+  );
   getIt.registerSingleton<VehicleLocationBloc>(
-    VehicleLocationBloc(repository: getIt<VehicleLocationRepository>()),
+    VehicleLocationBloc(
+      repository: getIt<VehicleLocationRepository>(),
+      webSocketService: getIt<WebSocketSubscriberService>(),
+    ),
   );
   getIt.registerSingleton<UserLocationBloc>(
     UserLocationBloc(

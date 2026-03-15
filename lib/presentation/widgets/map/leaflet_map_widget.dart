@@ -95,21 +95,21 @@ class _LeafletMapWidgetState extends State<LeafletMapWidget> {
       _markers.add(
         Marker(
           point: LatLng(location.latitude, location.longitude),
-          width: 40.0,
-          height: 40.0,
+          width: 48.0,
+          height: 48.0,
           child: Tooltip(
-            message: 'Placa: ${location.placa}',
+            message: 'Bus: ${location.placa}',
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.red,
+                color: Colors.orange,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
               ),
               child: const Center(
                 child: Icon(
-                  Icons.directions_car,
+                  Icons.directions_bus,
                   color: Colors.white,
-                  size: 20,
+                  size: 24,
                 ),
               ),
             ),

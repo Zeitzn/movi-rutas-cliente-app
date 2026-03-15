@@ -30,11 +30,27 @@ class GoogleMapWidget extends AbstractMapWidget {
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   GoogleMapController? _controller;
   late Set<Marker> _markers;
+  BitmapDescriptor? _busIcon;
 
   @override
   void initState() {
     super.initState();
     _updateMarkers();
+    _loadBusIcon();
+  }
+
+  Future<void> _loadBusIcon() async {
+    try {
+      _busIcon = await BitmapDescriptor.fromAssetImage(
+        const ImageConfiguration(size: Size(48, 48)),
+        'assets/icons/bus.png',
+      );
+    } catch (e) {
+      _busIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+    }
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -61,7 +77,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   void _updateMarkers() {
     _markers = {};
 
-    // Marcador del usuario
     _markers.add(
       Marker(
         markerId: const MarkerId('user_location'),
@@ -71,7 +86,6 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       ),
     );
 
-    // Marcadores de vehículos
     for (int i = 0; i < widget.vehicleLocations.length; i++) {
       final location = widget.vehicleLocations[i];
       _markers.add(
@@ -79,11 +93,14 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
           markerId: MarkerId('vehicle_${location.placa}_$i'),
           position: LatLng(location.latitude, location.longitude),
           infoWindow: InfoWindow(
-            title: 'Placa: ${location.placa}',
+            title: 'Bus: ${location.placa}',
             snippet:
                 'Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}',
           ),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          icon:
+              _busIcon ??
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          anchor: const Offset(0.5, 0.5),
         ),
       );
     }

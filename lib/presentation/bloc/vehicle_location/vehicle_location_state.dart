@@ -14,11 +14,15 @@ class VehicleLocationInitial extends VehicleLocationState {
 
 class VehicleLocationUpdated extends VehicleLocationState {
   final List<VehicleLocationEntity> locations;
+  final bool isWebSocketConnected;
 
-  const VehicleLocationUpdated({required this.locations});
+  const VehicleLocationUpdated({
+    required this.locations,
+    this.isWebSocketConnected = false,
+  });
 
   @override
-  List<Object?> get props => [locations];
+  List<Object?> get props => [locations, isWebSocketConnected];
 }
 
 class VehicleLocationError extends VehicleLocationState {

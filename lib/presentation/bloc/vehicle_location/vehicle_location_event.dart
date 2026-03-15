@@ -29,3 +29,11 @@ class ListenVehicleLocationsEvent extends VehicleLocationEvent {
   @override
   List<Object?> get props => [routeId];
 }
+
+class StartWebSocketListeningEvent extends VehicleLocationEvent {
+  const StartWebSocketListeningEvent();
+}
+
+class StopWebSocketListeningEvent extends VehicleLocationEvent {
+  const StopWebSocketListeningEvent();
+}
