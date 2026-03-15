@@ -20,23 +20,27 @@ class WebSocketSubscriberService {
     if (_isConnected) return;
 
     try {
+      print('STOMP: Connecting to ${WebSocketConstants.websocketUrl}...');
+
       _stompClient = StompClient(
         config: StompConfig(
           url: WebSocketConstants.websocketUrl,
           onConnect: (StompFrame frame) {
             _isConnected = true;
-            print('STOMP Subscriber Connected');
+            print('STOMP: Connected successfully');
             _subscribeToTopic();
           },
           onDisconnect: (StompFrame frame) {
             _isConnected = false;
-            print('STOMP Subscriber Disconnected');
+            print('STOMP: Disconnected');
           },
           onWebSocketError: (error) {
-            print('STOMP WebSocket Error: $error');
+            print('STOMP WS Error: $error');
+            print('STOMP Error type: ${error.runtimeType}');
           },
           onStompError: (StompFrame frame) {
             print('STOMP Protocol Error: ${frame.headers}');
+            print('STOMP Error body: ${frame.body}');
           },
           reconnectDelay: WebSocketConstants.reconnectDelay,
           heartbeatOutgoing: const Duration(seconds: 10),
@@ -45,9 +49,20 @@ class WebSocketSubscriberService {
       );
 
       _stompClient!.activate();
-      await Future.delayed(const Duration(seconds: 2));
+
+      // Wait for connection
+      int attempts = 0;
+      while (!_isConnected && attempts < 10) {
+        await Future.delayed(const Duration(milliseconds: 500));
+        attempts++;
+        print('STOMP: Waiting for connection... ($attempts)');
+      }
+
+      if (!_isConnected) {
+        print('STOMP: Connection timeout after ${attempts * 500}ms');
+      }
     } catch (e) {
-      print('WebSocket STOMP connection error: $e');
+      print('STOMP Connection exception: $e');
       _isConnected = false;
       rethrow;
     }
@@ -59,6 +74,7 @@ class WebSocketSubscriberService {
     _unsubscribeCallback = _stompClient!.subscribe(
       destination: WebSocketConstants.websocketTopic,
       callback: (StompFrame frame) {
+        print('📩 Received on client: ${frame.body}');
         _handleMessage(frame.body);
       },
     );
@@ -71,13 +87,32 @@ class WebSocketSubscriberService {
 
     try {
       final Map<String, dynamic> message = jsonDecode(body);
-      print('Received: $message');
+
+      // Extraer datos del mensaje
+      final remitente = message['remitente'] ?? 'unknown';
+      final latitud = message['latitud'];
+      final longitud = message['longitud'];
+      final contenido = message['contenido'] ?? '';
+      final timestamp = message['timestamp'] ?? '';
+      final velocidad = message['velocidad'];
+      final precision = message['precision'];
+
+      print('========== WS MESSAGE RECEIVED ==========');
+      print('Remitente: $remitente');
+      print('Latitud: $latitud');
+      print('Longitud: $longitud');
+      print('Contenido: $contenido');
+      print('Timestamp: $timestamp');
+      print('Velocidad: $velocidad');
+      print('Precision: $precision');
+      print('==========================================');
 
       for (final listener in _listeners) {
         listener(message);
       }
     } catch (e) {
-      print('Error parsing message: $e');
+      print('WS Error parsing message: $e');
+      print('WS Raw body: $body');
     }
   }
 
