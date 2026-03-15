@@ -116,6 +116,7 @@ class VehicleLocationBloc
     ClearLocationsEvent event,
     Emitter<VehicleLocationState> emit,
   ) async {
+    _vehicleLocations.clear();
     emit(const VehicleLocationInitial());
   }
 }

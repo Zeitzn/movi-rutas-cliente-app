@@ -138,6 +138,5 @@ class WebSocketSubscriberService {
     _stompClient!.deactivate();
     _stompClient = null;
     _isConnected = false;
-    _listeners.clear();
   }
 }
