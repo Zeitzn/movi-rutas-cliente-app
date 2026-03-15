@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cliente/domain/entities/vehicle_location_entity.dart';
@@ -30,7 +31,8 @@ class GoogleMapWidget extends AbstractMapWidget {
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   GoogleMapController? _controller;
   late Set<Marker> _markers;
-  final Map<int, BitmapDescriptor> _coloredIcons = {};
+  final Map<String, BitmapDescriptor> _coloredIcons = {};
+  final Map<String, bool> _loadingIcons = {};
 
   @override
   void initState() {
@@ -38,20 +40,90 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     _updateMarkers();
   }
 
-  BitmapDescriptor _getMarkerIcon(int color) {
-    if (_coloredIcons.containsKey(color)) {
-      return _coloredIcons[color]!;
-    }
-
-    final hue = HSLColor.fromColor(Color(color)).hue;
-    final icon = BitmapDescriptor.defaultMarkerWithHue(_getHueFromColor(color));
-    _coloredIcons[color] = icon;
-    return icon;
+  String _getIconKey(VehicleLocationEntity location) {
+    return '${location.mainColor}_${location.secondaryColor}';
   }
 
-  double _getHueFromColor(int color) {
-    final hsl = HSLColor.fromColor(Color(color));
-    return hsl.hue;
+  void _getMarkerIcon(VehicleLocationEntity location) async {
+    final key = _getIconKey(location);
+    if (_coloredIcons.containsKey(key) || _loadingIcons[key] == true) {
+      return;
+    }
+
+    _loadingIcons[key] = true;
+
+    final icon = await _createTwoToneMarkerIcon(
+      location.mainColor,
+      location.secondaryColor,
+    );
+
+    _loadingIcons[key] = false;
+    _coloredIcons[key] = icon;
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  Future<BitmapDescriptor> _createTwoToneMarkerIcon(
+    int mainColor,
+    int secondaryColor,
+  ) async {
+    const double size = 48.0;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final center = Offset(size / 2, size / 2);
+    final radius = size / 2 - 1;
+
+    final mainPaint = Paint()
+      ..color = Color(mainColor)
+      ..style = PaintingStyle.fill;
+
+    final secondaryPaint = Paint()
+      ..color = Color(secondaryColor)
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    canvas.drawCircle(center, radius, mainPaint);
+
+    final path = Path();
+    path.moveTo(0, size / 2);
+    path.lineTo(size, size / 2);
+    path.lineTo(size, size);
+    path.lineTo(0, size);
+    path.close();
+    canvas.drawPath(path, secondaryPaint);
+
+    canvas.drawCircle(center, radius, borderPaint);
+
+    canvas.drawCircle(Offset(size * 0.35, size * 0.35), size * 0.15, mainPaint);
+    canvas.drawCircle(
+      Offset(size * 0.65, size * 0.65),
+      size * 0.12,
+      secondaryPaint,
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(size.toInt(), size.toInt());
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+    if (byteData != null) {
+      return BitmapDescriptor.fromBytes(byteData.buffer.asUint8List());
+    }
+
+    return BitmapDescriptor.defaultMarkerWithHue(
+      HSLColor.fromColor(Color(mainColor)).hue,
+    );
+  }
+
+  BitmapDescriptor _getCachedIcon(VehicleLocationEntity location) {
+    final key = _getIconKey(location);
+    return _coloredIcons[key] ??
+        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange);
   }
 
   @override
@@ -78,6 +150,10 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   void _updateMarkers() {
     _markers = {};
 
+    for (final location in widget.vehicleLocations) {
+      _getMarkerIcon(location);
+    }
+
     _markers.add(
       Marker(
         markerId: const MarkerId('user_location'),
@@ -99,7 +175,7 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
                 ? 'Ruta: ${location.routeCode}'
                 : 'Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}',
           ),
-          icon: _getMarkerIcon(location.color),
+          icon: _getCachedIcon(location),
           anchor: const Offset(0.5, 0.5),
         ),
       );

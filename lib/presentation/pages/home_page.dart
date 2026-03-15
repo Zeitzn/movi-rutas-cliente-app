@@ -258,7 +258,12 @@ class _HomePageState extends State<HomePage> {
 
         final routeInfos = routes
             .map(
-              (r) => RouteInfo(id: r.id, code: r.code, mainColor: r.mainColor),
+              (r) => RouteInfo(
+                id: r.id,
+                code: r.code,
+                mainColor: r.mainColor,
+                secondaryColor: r.secondaryColor,
+              ),
             )
             .toList();
 

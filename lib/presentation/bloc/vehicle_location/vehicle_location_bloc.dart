@@ -48,7 +48,8 @@ class VehicleLocationBloc
         placa: placa,
         timestamp: DateTime.now(),
         routeCode: routeCode,
-        color: routeInfo?.mainColor ?? 0xFFFF5722,
+        mainColor: routeInfo?.mainColor ?? 0xFFFF5722,
+        secondaryColor: routeInfo?.secondaryColor ?? 0xFFFF8A65,
       );
 
       add(
@@ -133,7 +134,7 @@ class VehicleLocationBloc
 
     _routeInfoByCode.clear();
     for (final route in event.routes) {
-      _routeInfoByCode[route.id] = route;
+      _routeInfoByCode[route.code] = route;
     }
 
     final newCodes = Set<String>.from(

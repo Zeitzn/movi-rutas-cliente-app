@@ -12,15 +12,17 @@ class RouteInfo extends Equatable {
   final String id;
   final String code;
   final int mainColor;
+  final int secondaryColor;
 
   const RouteInfo({
     required this.id,
     required this.code,
     required this.mainColor,
+    required this.secondaryColor,
   });
 
   @override
-  List<Object?> get props => [id, code, mainColor];
+  List<Object?> get props => [id, code, mainColor, secondaryColor];
 }
 
 class UpdateVehicleLocationEvent extends VehicleLocationEvent {

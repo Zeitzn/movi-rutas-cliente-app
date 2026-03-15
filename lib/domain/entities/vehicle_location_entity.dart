@@ -6,7 +6,8 @@ class VehicleLocationEntity extends Equatable {
   final String placa;
   final DateTime timestamp;
   final String routeCode;
-  final int color;
+  final int mainColor;
+  final int secondaryColor;
 
   const VehicleLocationEntity({
     required this.latitude,
@@ -14,8 +15,11 @@ class VehicleLocationEntity extends Equatable {
     required this.placa,
     required this.timestamp,
     this.routeCode = '',
-    this.color = 0xFFFF5722,
+    this.mainColor = 0xFFFF5722,
+    this.secondaryColor = 0xFFFF8A65,
   });
+
+  int get color => mainColor;
 
   @override
   List<Object?> get props => [
@@ -24,6 +28,7 @@ class VehicleLocationEntity extends Equatable {
     placa,
     timestamp,
     routeCode,
-    color,
+    mainColor,
+    secondaryColor,
   ];
 }
