@@ -37,3 +37,30 @@ class StartWebSocketListeningEvent extends VehicleLocationEvent {
 class StopWebSocketListeningEvent extends VehicleLocationEvent {
   const StopWebSocketListeningEvent();
 }
+
+class AddRouteToListenEvent extends VehicleLocationEvent {
+  final String routeId;
+
+  const AddRouteToListenEvent({required this.routeId});
+
+  @override
+  List<Object?> get props => [routeId];
+}
+
+class RemoveRouteToListenEvent extends VehicleLocationEvent {
+  final String routeId;
+
+  const RemoveRouteToListenEvent({required this.routeId});
+
+  @override
+  List<Object?> get props => [routeId];
+}
+
+class UpdateSelectedRoutesEvent extends VehicleLocationEvent {
+  final List<String> routeIds;
+
+  const UpdateSelectedRoutesEvent({required this.routeIds});
+
+  @override
+  List<Object?> get props => [routeIds];
+}

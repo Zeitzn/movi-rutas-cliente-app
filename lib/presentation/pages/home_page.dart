@@ -28,6 +28,7 @@ class _HomePageState extends State<HomePage> {
   static const _onboardingSeenKey = 'onboarding_seen';
   bool _followUserLocation = true;
   int _recenterTrigger = 0;
+  final Set<String> _selectedRouteIds = {};
 
   @override
   void initState() {
@@ -233,90 +234,174 @@ class _HomePageState extends State<HomePage> {
     pageController.dispose();
   }
 
-  void _handleRouteSelection(dynamic selectedRoute) {
-    if (selectedRoute == null) {
-      // Desseleccionar ruta
+  void _confirmRouteSelection(Set<String> selectedRouteIds) {
+    if (selectedRouteIds.isEmpty) {
       context.read<RouteSelectionBloc>().add(const DeselectRouteEvent());
       context.read<VehicleLocationBloc>().add(
         const StopWebSocketListeningEvent(),
       );
       context.read<VehicleLocationBloc>().add(const ClearLocationsEvent());
+      setState(() {
+        _selectedRouteIds.clear();
+      });
     } else {
-      // Seleccionar ruta
-      context.read<RouteSelectionBloc>().add(
-        SelectRouteEvent(route: selectedRoute),
-      );
+      final routes =
+          (context.read<RouteSelectionBloc>().state as RouteSelectionLoaded)
+              .routes
+              .where((r) => selectedRouteIds.contains(r.id))
+              .toList();
+
+      if (routes.isNotEmpty) {
+        context.read<RouteSelectionBloc>().add(
+          SelectRoutesEvent(routes: routes),
+        );
+        context.read<VehicleLocationBloc>().add(
+          UpdateSelectedRoutesEvent(routeIds: selectedRouteIds.toList()),
+        );
+        setState(() {
+          _selectedRouteIds.clear();
+          _selectedRouteIds.addAll(selectedRouteIds);
+        });
+      }
+    }
+  }
+
+  void _handleRouteSelection(dynamic selectedRoute) {
+    if (selectedRoute == null) {
+      context.read<RouteSelectionBloc>().add(const DeselectRouteEvent());
       context.read<VehicleLocationBloc>().add(
-        const StartWebSocketListeningEvent(),
+        const StopWebSocketListeningEvent(),
       );
+      context.read<VehicleLocationBloc>().add(const ClearLocationsEvent());
+      setState(() {
+        _selectedRouteIds.clear();
+      });
     }
   }
 
   void _showRouteDropdown(BuildContext context, RouteSelectionLoaded state) {
+    final tempSelectedRoutes = Set<String>.from(
+      state.selectedRoutes.map((r) => r.id),
+    );
+
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'Selecciona una ruta',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Text(
-                  'Elige una ruta para ver buses en tiempo real',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.bodyMedium?.copyWith(color: Colors.grey.shade600),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: state.routes.length,
-                  itemBuilder: (context, index) {
-                    final route = state.routes[index];
-                    return ListTile(
-                      leading: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.directions_bus,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 20,
+      builder: (bottomSheetContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return DraggableScrollableSheet(
+              initialChildSize: 0.6,
+              minChildSize: 0.4,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (context, scrollController) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Selecciona rutas',
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.w600),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pop(bottomSheetContext);
+                                _confirmRouteSelection(tempSelectedRoutes);
+                              },
+                              child: Text(
+                                'Confirmar (${tempSelectedRoutes.length})',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      title: Text(route.name),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _handleRouteSelection(route);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+                      const SizedBox(height: 8),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Text(
+                          'Selecciona una o más rutas para ver buses en tiempo real',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(color: Colors.grey.shade600),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Expanded(
+                        child: ListView.builder(
+                          controller: scrollController,
+                          shrinkWrap: true,
+                          itemCount: state.routes.length,
+                          itemBuilder: (context, index) {
+                            final route = state.routes[index];
+                            final isSelected = tempSelectedRoutes.contains(
+                              route.id,
+                            );
+
+                            return CheckboxListTile(
+                              value: isSelected,
+                              onChanged: (value) {
+                                setModalState(() {
+                                  if (value == true) {
+                                    tempSelectedRoutes.add(route.id);
+                                  } else {
+                                    tempSelectedRoutes.remove(route.id);
+                                  }
+                                });
+                              },
+                              title: Text(route.name),
+                              subtitle: Text(
+                                route.id,
+                                style: TextStyle(
+                                  color: Colors.grey.shade500,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              secondary: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.primary.withOpacity(0.1)
+                                      : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Icon(
+                                  Icons.directions_bus,
+                                  color: isSelected
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Colors.grey.shade400,
+                                  size: 20,
+                                ),
+                              ),
+                              activeColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                              checkColor: Colors.white,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         );
       },
     );
@@ -570,7 +655,7 @@ class _HomePageState extends State<HomePage> {
       child: BlocBuilder<RouteSelectionBloc, RouteSelectionState>(
         builder: (context, state) {
           if (state is RouteSelectionLoaded) {
-            final isCollapsed = state.selectedRoute != null;
+            final hasSelectedRoutes = state.selectedRoutes.isNotEmpty;
 
             return AnimatedContainer(
               duration: const Duration(milliseconds: 250),
@@ -591,13 +676,13 @@ class _HomePageState extends State<HomePage> {
                 borderRadius: BorderRadius.circular(20),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(20),
-                  onTap: isCollapsed ? () => _handleRouteSelection(null) : null,
+                  onTap: () => _showRouteDropdown(context, state),
                   child: Padding(
                     padding: EdgeInsets.fromLTRB(
                       16,
-                      isCollapsed ? 12 : 16,
+                      hasSelectedRoutes ? 12 : 16,
                       16,
-                      isCollapsed ? 12 : 16,
+                      hasSelectedRoutes ? 12 : 16,
                     ),
                     child: Row(
                       children: [
@@ -608,7 +693,9 @@ class _HomePageState extends State<HomePage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
-                            isCollapsed ? Icons.check_circle : Icons.search,
+                            hasSelectedRoutes
+                                ? Icons.check_circle
+                                : Icons.search,
                             color: colorScheme.primary,
                             size: 20,
                           ),
@@ -617,7 +704,7 @@ class _HomePageState extends State<HomePage> {
                         Expanded(
                           child: AnimatedSwitcher(
                             duration: const Duration(milliseconds: 200),
-                            child: isCollapsed
+                            child: hasSelectedRoutes
                                 ? Column(
                                     key: const ValueKey('collapsed'),
                                     crossAxisAlignment:
@@ -625,18 +712,38 @@ class _HomePageState extends State<HomePage> {
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
                                       Text(
-                                        'Ruta seleccionada',
+                                        '${state.selectedRoutes.length} ruta(s) seleccionada(s)',
                                         style: textTheme.bodySmall?.copyWith(
                                           color: Colors.grey.shade500,
                                           fontSize: 11,
                                         ),
                                       ),
-                                      Text(
-                                        state.selectedRoute?.name ?? '',
-                                        style: textTheme.titleMedium?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                                      const SizedBox(height: 2),
+                                      Wrap(
+                                        spacing: 4,
+                                        runSpacing: 2,
+                                        children: state.selectedRoutes
+                                            .take(2)
+                                            .map(
+                                              (r) => Text(
+                                                r.name,
+                                                style: textTheme.titleSmall
+                                                    ?.copyWith(
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                              ),
+                                            )
+                                            .toList(),
                                       ),
+                                      if (state.selectedRoutes.length > 2)
+                                        Text(
+                                          '+${state.selectedRoutes.length - 2} más',
+                                          style: textTheme.bodySmall?.copyWith(
+                                            color: colorScheme.primary,
+                                            fontSize: 11,
+                                          ),
+                                        ),
                                     ],
                                   )
                                 : Column(
@@ -661,9 +768,16 @@ class _HomePageState extends State<HomePage> {
                                   ),
                           ),
                         ),
-                        if (isCollapsed)
+                        if (hasSelectedRoutes)
                           GestureDetector(
-                            onTap: () => _handleRouteSelection(null),
+                            onTap: () {
+                              context.read<RouteSelectionBloc>().add(
+                                const DeselectRouteEvent(),
+                              );
+                              context.read<VehicleLocationBloc>().add(
+                                const StopWebSocketListeningEvent(),
+                              );
+                            },
                             child: Icon(
                               Icons.close,
                               color: Colors.grey.shade400,
@@ -848,13 +962,13 @@ class _HomePageState extends State<HomePage> {
                     padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: BlocBuilder<RouteSelectionBloc, RouteSelectionState>(
                       builder: (context, state) {
-                        final hasSelectedRoute =
+                        final hasSelectedRoutes =
                             state is RouteSelectionLoaded &&
-                            state.selectedRoute != null;
+                            state.selectedRoutes.isNotEmpty;
 
                         return StatusMessageWidget(
                           message: 'Selecciona la ruta que estás esperando',
-                          show: !hasSelectedRoute,
+                          show: !hasSelectedRoutes,
                         );
                       },
                     ),

@@ -21,6 +21,15 @@ class SelectRouteEvent extends RouteSelectionEvent {
   List<Object?> get props => [route];
 }
 
+class SelectRoutesEvent extends RouteSelectionEvent {
+  final List<RouteEntity> routes;
+
+  const SelectRoutesEvent({required this.routes});
+
+  @override
+  List<Object?> get props => [routes];
+}
+
 class DeselectRouteEvent extends RouteSelectionEvent {
   const DeselectRouteEvent();
 }

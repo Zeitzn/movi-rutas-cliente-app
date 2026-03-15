@@ -12,6 +12,7 @@ class RouteSelectionBloc
     : super(const RouteSelectionInitial()) {
     on<LoadRoutesEvent>(_onLoadRoutes);
     on<SelectRouteEvent>(_onSelectRoute);
+    on<SelectRoutesEvent>(_onSelectRoutes);
     on<DeselectRouteEvent>(_onDeselectRoute);
   }
 
@@ -39,6 +40,23 @@ class RouteSelectionBloc
         RouteSelectionLoaded(
           routes: currentState.routes,
           selectedRoute: event.route,
+          selectedRoutes: [event.route],
+        ),
+      );
+    }
+  }
+
+  Future<void> _onSelectRoutes(
+    SelectRoutesEvent event,
+    Emitter<RouteSelectionState> emit,
+  ) async {
+    if (state is RouteSelectionLoaded) {
+      final currentState = state as RouteSelectionLoaded;
+      emit(
+        RouteSelectionLoaded(
+          routes: currentState.routes,
+          selectedRoute: event.routes.isNotEmpty ? event.routes.first : null,
+          selectedRoutes: event.routes,
         ),
       );
     }
@@ -51,7 +69,11 @@ class RouteSelectionBloc
     if (state is RouteSelectionLoaded) {
       final currentState = state as RouteSelectionLoaded;
       emit(
-        RouteSelectionLoaded(routes: currentState.routes, selectedRoute: null),
+        RouteSelectionLoaded(
+          routes: currentState.routes,
+          selectedRoute: null,
+          selectedRoutes: const [],
+        ),
       );
     }
   }

@@ -4,7 +4,6 @@ import 'package:stomp_dart_client/stomp.dart';
 import 'package:stomp_dart_client/stomp_config.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:stomp_dart_client/stomp_handler.dart';
-import 'package:cliente/core/constants/websocket_constants.dart';
 
 typedef MessageCallback = void Function(Map<String, dynamic> message);
 
@@ -12,7 +11,8 @@ class WebSocketSubscriberService {
   StompClient? _stompClient;
   bool _isConnected = false;
   final List<MessageCallback> _listeners = [];
-  StompUnsubscribe? _unsubscribeCallback;
+  final Map<String, StompUnsubscribe> _subscriptions = {};
+  String _baseUrl = 'ws://mr-ws.todoprogramacionapi.xyz/channels';
 
   bool get isConnected => _isConnected;
 
@@ -20,15 +20,14 @@ class WebSocketSubscriberService {
     if (_isConnected) return;
 
     try {
-      print('STOMP: Connecting to ${WebSocketConstants.websocketUrl}...');
+      print('STOMP: Connecting to $_baseUrl...');
 
       _stompClient = StompClient(
         config: StompConfig(
-          url: WebSocketConstants.websocketUrl,
+          url: _baseUrl,
           onConnect: (StompFrame frame) {
             _isConnected = true;
             print('STOMP: Connected successfully');
-            _subscribeToTopic();
           },
           onDisconnect: (StompFrame frame) {
             _isConnected = false;
@@ -42,7 +41,7 @@ class WebSocketSubscriberService {
             print('STOMP Protocol Error: ${frame.headers}');
             print('STOMP Error body: ${frame.body}');
           },
-          reconnectDelay: WebSocketConstants.reconnectDelay,
+          reconnectDelay: const Duration(seconds: 5),
           heartbeatOutgoing: const Duration(seconds: 10),
           heartbeatIncoming: const Duration(seconds: 10),
         ),
@@ -50,7 +49,6 @@ class WebSocketSubscriberService {
 
       _stompClient!.activate();
 
-      // Wait for connection
       int attempts = 0;
       while (!_isConnected && attempts < 10) {
         await Future.delayed(const Duration(milliseconds: 500));
@@ -68,19 +66,39 @@ class WebSocketSubscriberService {
     }
   }
 
-  void _subscribeToTopic() {
-    if (_stompClient == null || !_isConnected) return;
+  void subscribeToRoute(String routeId) {
+    if (_stompClient == null || !_isConnected) {
+      print('STOMP: Cannot subscribe, not connected');
+      return;
+    }
 
-    _unsubscribeCallback = _stompClient!.subscribe(
-      destination: WebSocketConstants.websocketTopic,
+    if (_subscriptions.containsKey(routeId)) {
+      print('STOMP: Already subscribed to route $routeId');
+      return;
+    }
+
+    final topic = '/topic/channel/$routeId';
+    final unsubscribe = _stompClient!.subscribe(
+      destination: topic,
       callback: (StompFrame frame) {
-        print('📩 Received on client: ${frame.body}');
+        print('📩 Received on $topic: ${frame.body}');
         _handleMessage(frame.body);
       },
     );
 
-    print('Subscribed to ${WebSocketConstants.websocketTopic}');
+    _subscriptions[routeId] = unsubscribe;
+    print('Subscribed to $topic');
   }
+
+  void unsubscribeFromRoute(String routeId) {
+    final unsubscribe = _subscriptions.remove(routeId);
+    if (unsubscribe != null) {
+      unsubscribe();
+      print('Unsubscribed from /topic/channel/$routeId');
+    }
+  }
+
+  Set<String> get subscribedRoutes => _subscriptions.keys.toSet();
 
   void _handleMessage(String? body) {
     if (body == null || body.isEmpty) return;
@@ -88,7 +106,6 @@ class WebSocketSubscriberService {
     try {
       final Map<String, dynamic> message = jsonDecode(body);
 
-      // Extraer datos del mensaje
       final remitente = message['remitente'] ?? 'unknown';
       final latitud = message['latitud'];
       final longitud = message['longitud'];
@@ -124,16 +141,16 @@ class WebSocketSubscriberService {
     _listeners.remove(callback);
   }
 
-  void unsubscribe() {
-    if (_unsubscribeCallback != null) {
-      _unsubscribeCallback!();
-      _unsubscribeCallback = null;
-      print('Unsubscribed from ${WebSocketConstants.websocketTopic}');
+  void unsubscribeAll() {
+    for (final unsubscribe in _subscriptions.values) {
+      unsubscribe();
     }
+    _subscriptions.clear();
+    print('Unsubscribed from all routes');
   }
 
   Future<void> disconnect() async {
-    unsubscribe();
+    unsubscribeAll();
     if (_stompClient == null) return;
     _stompClient!.deactivate();
     _stompClient = null;

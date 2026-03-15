@@ -19,11 +19,18 @@ class RouteSelectionLoading extends RouteSelectionState {
 class RouteSelectionLoaded extends RouteSelectionState {
   final List<RouteEntity> routes;
   final RouteEntity? selectedRoute;
+  final List<RouteEntity> selectedRoutes;
 
-  const RouteSelectionLoaded({required this.routes, this.selectedRoute});
+  const RouteSelectionLoaded({
+    required this.routes,
+    this.selectedRoute,
+    this.selectedRoutes = const [],
+  });
+
+  bool get hasSelectedRoutes => selectedRoutes.isNotEmpty;
 
   @override
-  List<Object?> get props => [routes, selectedRoute];
+  List<Object?> get props => [routes, selectedRoute, selectedRoutes];
 }
 
 class RouteSelectionError extends RouteSelectionState {

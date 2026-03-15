@@ -10,6 +10,7 @@ class VehicleLocationBloc
   final VehicleLocationRepository repository;
   final WebSocketSubscriberService _webSocketService;
   final Map<String, VehicleLocationEntity> _vehicleLocations = {};
+  final Set<String> _selectedRoutes = {};
 
   VehicleLocationBloc({
     required this.repository,
@@ -21,9 +22,14 @@ class VehicleLocationBloc
     on<ClearLocationsEvent>(_onClearLocations);
     on<StartWebSocketListeningEvent>(_onStartWebSocketListening);
     on<StopWebSocketListeningEvent>(_onStopWebSocketListening);
+    on<AddRouteToListenEvent>(_onAddRouteToListen);
+    on<RemoveRouteToListenEvent>(_onRemoveRouteToListen);
+    on<UpdateSelectedRoutesEvent>(_onUpdateSelectedRoutes);
 
     _webSocketService.addListener(_onWebSocketMessageReceived);
   }
+
+  Set<String> get selectedRoutes => _selectedRoutes;
 
   void _onWebSocketMessageReceived(Map<String, dynamic> message) {
     final remitente = message['remitente'] as String?;
@@ -53,6 +59,9 @@ class VehicleLocationBloc
   ) async {
     try {
       await _webSocketService.connect();
+      for (final routeId in _selectedRoutes) {
+        _webSocketService.subscribeToRoute(routeId);
+      }
       emit(
         VehicleLocationUpdated(
           locations: _vehicleLocations.values.toList(),
@@ -68,13 +77,96 @@ class VehicleLocationBloc
     StopWebSocketListeningEvent event,
     Emitter<VehicleLocationState> emit,
   ) async {
+    _vehicleLocations.clear();
     await _webSocketService.disconnect();
+    emit(const VehicleLocationInitial());
+  }
+
+  Future<void> _onAddRouteToListen(
+    AddRouteToListenEvent event,
+    Emitter<VehicleLocationState> emit,
+  ) async {
+    _selectedRoutes.add(event.routeId);
+
+    if (_webSocketService.isConnected) {
+      _webSocketService.subscribeToRoute(event.routeId);
+    }
+
     emit(
       VehicleLocationUpdated(
         locations: _vehicleLocations.values.toList(),
-        isWebSocketConnected: false,
+        isWebSocketConnected: _webSocketService.isConnected,
       ),
     );
+  }
+
+  Future<void> _onRemoveRouteToListen(
+    RemoveRouteToListenEvent event,
+    Emitter<VehicleLocationState> emit,
+  ) async {
+    _selectedRoutes.remove(event.routeId);
+    _webSocketService.unsubscribeFromRoute(event.routeId);
+
+    _vehicleLocations.removeWhere(
+      (key, value) => key.startsWith(event.routeId.split('/').last),
+    );
+
+    emit(
+      VehicleLocationUpdated(
+        locations: _vehicleLocations.values.toList(),
+        isWebSocketConnected: _webSocketService.isConnected,
+      ),
+    );
+  }
+
+  Future<void> _onUpdateSelectedRoutes(
+    UpdateSelectedRoutesEvent event,
+    Emitter<VehicleLocationState> emit,
+  ) async {
+    final previousRoutes = Set<String>.from(_selectedRoutes);
+    final newRoutes = Set<String>.from(event.routeIds);
+
+    final routesToAdd = newRoutes.difference(previousRoutes);
+    final routesToRemove = previousRoutes.difference(newRoutes);
+
+    if (!_webSocketService.isConnected && newRoutes.isNotEmpty) {
+      try {
+        await _webSocketService.connect();
+      } catch (e) {
+        emit(VehicleLocationError(message: e.toString()));
+        return;
+      }
+    }
+
+    for (final routeId in routesToAdd) {
+      _selectedRoutes.add(routeId);
+      if (_webSocketService.isConnected) {
+        _webSocketService.subscribeToRoute(routeId);
+      }
+    }
+
+    for (final routeId in routesToRemove) {
+      _selectedRoutes.remove(routeId);
+      _webSocketService.unsubscribeFromRoute(routeId);
+    }
+
+    final routePrefixes = newRoutes.map((r) => r.split('/').last).toSet();
+    _vehicleLocations.removeWhere((key, value) {
+      final keyPrefix = key.replaceAll(RegExp(r'[A-Z\-0-9]*$'), '');
+      return !routePrefixes.any((prefix) => key.startsWith(prefix));
+    });
+
+    if (_selectedRoutes.isEmpty) {
+      await _webSocketService.disconnect();
+      emit(const VehicleLocationInitial());
+    } else {
+      emit(
+        VehicleLocationUpdated(
+          locations: _vehicleLocations.values.toList(),
+          isWebSocketConnected: _webSocketService.isConnected,
+        ),
+      );
+    }
   }
 
   Future<void> _onListenVehicleLocations(
