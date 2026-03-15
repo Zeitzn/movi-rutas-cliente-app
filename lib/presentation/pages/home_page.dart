@@ -737,6 +737,61 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 ),
+                Positioned(
+                  top: 16,
+                  left: 0,
+                  right: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child:
+                        BlocBuilder<VehicleLocationBloc, VehicleLocationState>(
+                          builder: (context, state) {
+                            final isConnected =
+                                state is VehicleLocationUpdated &&
+                                state.isWebSocketConnected;
+
+                            return AnimatedOpacity(
+                              duration: const Duration(milliseconds: 300),
+                              opacity: isConnected ? 1.0 : 0.0,
+                              child: Center(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade100,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: Colors.green.shade400,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.wifi,
+                                        size: 16,
+                                        color: Colors.green.shade700,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Conectado',
+                                        style: TextStyle(
+                                          color: Colors.green.shade700,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                  ),
+                ),
               ],
             ),
           ),
