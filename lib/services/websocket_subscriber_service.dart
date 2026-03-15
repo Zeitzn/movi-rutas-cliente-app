@@ -5,7 +5,14 @@ import 'package:stomp_dart_client/stomp_config.dart';
 import 'package:stomp_dart_client/stomp_frame.dart';
 import 'package:stomp_dart_client/stomp_handler.dart';
 
-typedef MessageCallback = void Function(Map<String, dynamic> message);
+typedef MessageCallback = void Function(WebSocketMessage message);
+
+class WebSocketMessage {
+  final Map<String, dynamic> data;
+  final String routeId;
+
+  WebSocketMessage({required this.data, required this.routeId});
+}
 
 class WebSocketSubscriberService {
   StompClient? _stompClient;
@@ -66,41 +73,41 @@ class WebSocketSubscriberService {
     }
   }
 
-  void subscribeToRoute(String routeId) {
+  void subscribeToRoute(String routeCode) {
     if (_stompClient == null || !_isConnected) {
       print('STOMP: Cannot subscribe, not connected');
       return;
     }
 
-    if (_subscriptions.containsKey(routeId)) {
-      print('STOMP: Already subscribed to route $routeId');
+    if (_subscriptions.containsKey(routeCode)) {
+      print('STOMP: Already subscribed to route $routeCode');
       return;
     }
 
-    final topic = '/topic/channel/$routeId';
+    final topic = '/topic/channel/PE/AYAC/$routeCode';
     final unsubscribe = _stompClient!.subscribe(
       destination: topic,
       callback: (StompFrame frame) {
         print('📩 Received on $topic: ${frame.body}');
-        _handleMessage(frame.body);
+        _handleMessage(frame.body, routeCode);
       },
     );
 
-    _subscriptions[routeId] = unsubscribe;
+    _subscriptions[routeCode] = unsubscribe;
     print('Subscribed to $topic');
   }
 
-  void unsubscribeFromRoute(String routeId) {
-    final unsubscribe = _subscriptions.remove(routeId);
+  void unsubscribeFromRoute(String routeCode) {
+    final unsubscribe = _subscriptions.remove(routeCode);
     if (unsubscribe != null) {
       unsubscribe();
-      print('Unsubscribed from /topic/channel/$routeId');
+      print('Unsubscribed from /topic/channel/PE/AYAC/$routeCode');
     }
   }
 
   Set<String> get subscribedRoutes => _subscriptions.keys.toSet();
 
-  void _handleMessage(String? body) {
+  void _handleMessage(String? body, String routeCode) {
     if (body == null || body.isEmpty) return;
 
     try {
@@ -124,8 +131,9 @@ class WebSocketSubscriberService {
       print('Precision: $precision');
       print('==========================================');
 
+      final wsMessage = WebSocketMessage(data: message, routeId: routeCode);
       for (final listener in _listeners) {
-        listener(message);
+        listener(wsMessage);
       }
     } catch (e) {
       print('WS Error parsing message: $e');

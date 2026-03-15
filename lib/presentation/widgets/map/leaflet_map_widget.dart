@@ -92,18 +92,28 @@ class _LeafletMapWidgetState extends State<LeafletMapWidget> {
     // Marcadores de vehículos
     for (int i = 0; i < widget.vehicleLocations.length; i++) {
       final location = widget.vehicleLocations[i];
+      final markerColor = Color(location.color);
       _markers.add(
         Marker(
           point: LatLng(location.latitude, location.longitude),
           width: 48.0,
           height: 48.0,
           child: Tooltip(
-            message: 'Bus: ${location.placa}',
+            message: location.routeCode.isNotEmpty
+                ? 'Bus: ${location.placa} - Ruta ${location.routeCode}'
+                : 'Bus: ${location.placa}',
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.orange,
+                color: markerColor,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: markerColor.withOpacity(0.4),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
               ),
               child: const Center(
                 child: Icon(

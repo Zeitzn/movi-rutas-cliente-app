@@ -10,7 +10,7 @@ class VehicleLocationBloc
   final VehicleLocationRepository repository;
   final WebSocketSubscriberService _webSocketService;
   final Map<String, VehicleLocationEntity> _vehicleLocations = {};
-  final Set<String> _selectedRoutes = {};
+  final Map<String, RouteInfo> _routeInfoByCode = {};
 
   VehicleLocationBloc({
     required this.repository,
@@ -29,20 +29,26 @@ class VehicleLocationBloc
     _webSocketService.addListener(_onWebSocketMessageReceived);
   }
 
-  Set<String> get selectedRoutes => _selectedRoutes;
+  Set<String> get selectedRoutes => _routeInfoByCode.keys.toSet();
 
-  void _onWebSocketMessageReceived(Map<String, dynamic> message) {
+  void _onWebSocketMessageReceived(WebSocketMessage wsMessage) {
+    final message = wsMessage.data;
+    final routeCode = wsMessage.routeId;
     final remitente = message['remitente'] as String?;
     final latitud = message['latitud'] as double?;
     final longitud = message['longitud'] as double?;
 
     if (latitud != null && longitud != null) {
       final placa = remitente ?? 'Unknown';
-      _vehicleLocations[placa] = VehicleLocationEntity(
+      final routeInfo = _routeInfoByCode[routeCode];
+
+      _vehicleLocations['${routeCode}_$placa'] = VehicleLocationEntity(
         latitude: latitud,
         longitude: longitud,
         placa: placa,
         timestamp: DateTime.now(),
+        routeCode: routeCode,
+        color: routeInfo?.mainColor ?? 0xFFFF5722,
       );
 
       add(
@@ -59,8 +65,8 @@ class VehicleLocationBloc
   ) async {
     try {
       await _webSocketService.connect();
-      for (final routeId in _selectedRoutes) {
-        _webSocketService.subscribeToRoute(routeId);
+      for (final routeInfo in _routeInfoByCode.values) {
+        _webSocketService.subscribeToRoute(routeInfo.code);
       }
       emit(
         VehicleLocationUpdated(
@@ -86,12 +92,10 @@ class VehicleLocationBloc
     AddRouteToListenEvent event,
     Emitter<VehicleLocationState> emit,
   ) async {
-    _selectedRoutes.add(event.routeId);
-
-    if (_webSocketService.isConnected) {
-      _webSocketService.subscribeToRoute(event.routeId);
+    final routeInfo = _routeInfoByCode[event.routeId];
+    if (routeInfo != null && _webSocketService.isConnected) {
+      _webSocketService.subscribeToRoute(routeInfo.code);
     }
-
     emit(
       VehicleLocationUpdated(
         locations: _vehicleLocations.values.toList(),
@@ -104,12 +108,14 @@ class VehicleLocationBloc
     RemoveRouteToListenEvent event,
     Emitter<VehicleLocationState> emit,
   ) async {
-    _selectedRoutes.remove(event.routeId);
-    _webSocketService.unsubscribeFromRoute(event.routeId);
-
-    _vehicleLocations.removeWhere(
-      (key, value) => key.startsWith(event.routeId.split('/').last),
-    );
+    final routeInfo = _routeInfoByCode[event.routeId];
+    if (routeInfo != null) {
+      _webSocketService.unsubscribeFromRoute(routeInfo.code);
+      _vehicleLocations.removeWhere(
+        (key, value) => key.startsWith('${routeInfo.code}_'),
+      );
+    }
+    _routeInfoByCode.remove(event.routeId);
 
     emit(
       VehicleLocationUpdated(
@@ -123,13 +129,21 @@ class VehicleLocationBloc
     UpdateSelectedRoutesEvent event,
     Emitter<VehicleLocationState> emit,
   ) async {
-    final previousRoutes = Set<String>.from(_selectedRoutes);
-    final newRoutes = Set<String>.from(event.routeIds);
+    final previousCodes = Set<String>.from(_routeInfoByCode.keys);
 
-    final routesToAdd = newRoutes.difference(previousRoutes);
-    final routesToRemove = previousRoutes.difference(newRoutes);
+    _routeInfoByCode.clear();
+    for (final route in event.routes) {
+      _routeInfoByCode[route.id] = route;
+    }
 
-    if (!_webSocketService.isConnected && newRoutes.isNotEmpty) {
+    final newCodes = Set<String>.from(
+      _routeInfoByCode.values.map((r) => r.code),
+    );
+
+    final routesToAdd = newCodes.difference(previousCodes);
+    final routesToRemove = previousCodes.difference(newCodes);
+
+    if (!_webSocketService.isConnected && newCodes.isNotEmpty) {
       try {
         await _webSocketService.connect();
       } catch (e) {
@@ -138,25 +152,18 @@ class VehicleLocationBloc
       }
     }
 
-    for (final routeId in routesToAdd) {
-      _selectedRoutes.add(routeId);
+    for (final code in routesToAdd) {
       if (_webSocketService.isConnected) {
-        _webSocketService.subscribeToRoute(routeId);
+        _webSocketService.subscribeToRoute(code);
       }
     }
 
-    for (final routeId in routesToRemove) {
-      _selectedRoutes.remove(routeId);
-      _webSocketService.unsubscribeFromRoute(routeId);
+    for (final code in routesToRemove) {
+      _webSocketService.unsubscribeFromRoute(code);
+      _vehicleLocations.removeWhere((key, value) => key.startsWith('${code}_'));
     }
 
-    final routePrefixes = newRoutes.map((r) => r.split('/').last).toSet();
-    _vehicleLocations.removeWhere((key, value) {
-      final keyPrefix = key.replaceAll(RegExp(r'[A-Z\-0-9]*$'), '');
-      return !routePrefixes.any((prefix) => key.startsWith(prefix));
-    });
-
-    if (_selectedRoutes.isEmpty) {
+    if (_routeInfoByCode.isEmpty) {
       await _webSocketService.disconnect();
       emit(const VehicleLocationInitial());
     } else {

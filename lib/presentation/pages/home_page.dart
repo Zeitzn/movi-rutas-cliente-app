@@ -255,27 +255,21 @@ class _HomePageState extends State<HomePage> {
         context.read<RouteSelectionBloc>().add(
           SelectRoutesEvent(routes: routes),
         );
+
+        final routeInfos = routes
+            .map(
+              (r) => RouteInfo(id: r.id, code: r.code, mainColor: r.mainColor),
+            )
+            .toList();
+
         context.read<VehicleLocationBloc>().add(
-          UpdateSelectedRoutesEvent(routeIds: selectedRouteIds.toList()),
+          UpdateSelectedRoutesEvent(routes: routeInfos),
         );
         setState(() {
           _selectedRouteIds.clear();
           _selectedRouteIds.addAll(selectedRouteIds);
         });
       }
-    }
-  }
-
-  void _handleRouteSelection(dynamic selectedRoute) {
-    if (selectedRoute == null) {
-      context.read<RouteSelectionBloc>().add(const DeselectRouteEvent());
-      context.read<VehicleLocationBloc>().add(
-        const StopWebSocketListeningEvent(),
-      );
-      context.read<VehicleLocationBloc>().add(const ClearLocationsEvent());
-      setState(() {
-        _selectedRouteIds.clear();
-      });
     }
   }
 
@@ -364,7 +358,7 @@ class _HomePageState extends State<HomePage> {
                               },
                               title: Text(route.name),
                               subtitle: Text(
-                                route.id,
+                                'Código: ${route.code}',
                                 style: TextStyle(
                                   color: Colors.grey.shade500,
                                   fontSize: 12,

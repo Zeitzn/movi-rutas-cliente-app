@@ -30,27 +30,28 @@ class GoogleMapWidget extends AbstractMapWidget {
 class _GoogleMapWidgetState extends State<GoogleMapWidget> {
   GoogleMapController? _controller;
   late Set<Marker> _markers;
-  BitmapDescriptor? _busIcon;
+  final Map<int, BitmapDescriptor> _coloredIcons = {};
 
   @override
   void initState() {
     super.initState();
     _updateMarkers();
-    _loadBusIcon();
   }
 
-  Future<void> _loadBusIcon() async {
-    try {
-      _busIcon = await BitmapDescriptor.fromAssetImage(
-        const ImageConfiguration(size: Size(48, 48)),
-        'assets/icons/bus.png',
-      );
-    } catch (e) {
-      _busIcon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+  BitmapDescriptor _getMarkerIcon(int color) {
+    if (_coloredIcons.containsKey(color)) {
+      return _coloredIcons[color]!;
     }
-    if (mounted) {
-      setState(() {});
-    }
+
+    final hue = HSLColor.fromColor(Color(color)).hue;
+    final icon = BitmapDescriptor.defaultMarkerWithHue(_getHueFromColor(color));
+    _coloredIcons[color] = icon;
+    return icon;
+  }
+
+  double _getHueFromColor(int color) {
+    final hsl = HSLColor.fromColor(Color(color));
+    return hsl.hue;
   }
 
   @override
@@ -94,12 +95,11 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
           position: LatLng(location.latitude, location.longitude),
           infoWindow: InfoWindow(
             title: 'Bus: ${location.placa}',
-            snippet:
-                'Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}',
+            snippet: location.routeCode.isNotEmpty
+                ? 'Ruta: ${location.routeCode}'
+                : 'Lat: ${location.latitude.toStringAsFixed(4)}, Lng: ${location.longitude.toStringAsFixed(4)}',
           ),
-          icon:
-              _busIcon ??
-              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          icon: _getMarkerIcon(location.color),
           anchor: const Offset(0.5, 0.5),
         ),
       );

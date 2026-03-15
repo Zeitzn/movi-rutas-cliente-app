@@ -8,6 +8,21 @@ abstract class VehicleLocationEvent extends Equatable {
   List<Object?> get props => [];
 }
 
+class RouteInfo extends Equatable {
+  final String id;
+  final String code;
+  final int mainColor;
+
+  const RouteInfo({
+    required this.id,
+    required this.code,
+    required this.mainColor,
+  });
+
+  @override
+  List<Object?> get props => [id, code, mainColor];
+}
+
 class UpdateVehicleLocationEvent extends VehicleLocationEvent {
   final List<VehicleLocationEntity> locations;
 
@@ -57,10 +72,10 @@ class RemoveRouteToListenEvent extends VehicleLocationEvent {
 }
 
 class UpdateSelectedRoutesEvent extends VehicleLocationEvent {
-  final List<String> routeIds;
+  final List<RouteInfo> routes;
 
-  const UpdateSelectedRoutesEvent({required this.routeIds});
+  const UpdateSelectedRoutesEvent({required this.routes});
 
   @override
-  List<Object?> get props => [routeIds];
+  List<Object?> get props => [routes];
 }
