@@ -106,12 +106,14 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
     }
   }
 
-  void _animateToUser() {
+  void _animateToUser() async {
+    final currentZoom =
+        await _controller?.getZoomLevel() ?? MapConstants.initialZoom;
     _controller?.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(
           target: LatLng(widget.userLatitude, widget.userLongitude),
-          zoom: MapConstants.initialZoom,
+          zoom: currentZoom,
         ),
       ),
     );

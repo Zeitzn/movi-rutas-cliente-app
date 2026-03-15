@@ -58,7 +58,7 @@ class _LeafletMapWidgetState extends State<LeafletMapWidget> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _mapController.move(
           LatLng(widget.userLatitude, widget.userLongitude),
-          MapConstants.initialZoom,
+          _mapController.camera.zoom,
         );
       });
     }
