@@ -71,8 +71,8 @@ class UserLocationBloc extends Bloc<UserLocationEvent, UserLocationState> {
   ) async {
     try {
       final locationStream = locationPermissionService.getLocationStream(
-        updateInterval: const Duration(seconds: 5),
-        distanceFilter: 10,
+        updateInterval: const Duration(seconds: 2),
+        distanceFilter: 5,
       );
 
       await emit.forEach(

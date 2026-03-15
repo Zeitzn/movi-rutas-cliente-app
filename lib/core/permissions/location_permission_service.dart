@@ -87,7 +87,11 @@ class LocationPermissionServiceImpl implements LocationPermissionService {
     required Duration updateInterval,
     required int distanceFilter,
   }) {
-    return Geolocator.getPositionStream();
+    final locationSettings = LocationSettings(
+      accuracy: LocationAccuracy.best,
+      distanceFilter: distanceFilter,
+    );
+    return Geolocator.getPositionStream(locationSettings: locationSettings);
   }
 
   @override
