@@ -88,24 +88,28 @@ class _GoogleMapWidgetState extends State<GoogleMapWidget> {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
-    canvas.drawCircle(center, radius, mainPaint);
+    canvas.save();
+    final clipPath = Path()
+      ..addOval(Rect.fromCircle(center: center, radius: radius));
+    canvas.clipPath(clipPath);
 
-    final path = Path();
-    path.moveTo(0, size / 2);
-    path.lineTo(size, size / 2);
-    path.lineTo(size, size);
-    path.lineTo(0, size);
-    path.close();
-    canvas.drawPath(path, secondaryPaint);
+    final upperPath = Path()
+      ..moveTo(0, 0)
+      ..lineTo(0, size)
+      ..lineTo(size, 0)
+      ..close();
+
+    final lowerPath = Path()
+      ..moveTo(0, size)
+      ..lineTo(size, size)
+      ..lineTo(size, 0)
+      ..close();
+
+    canvas.drawPath(upperPath, mainPaint);
+    canvas.drawPath(lowerPath, secondaryPaint);
+    canvas.restore();
 
     canvas.drawCircle(center, radius, borderPaint);
-
-    canvas.drawCircle(Offset(size * 0.35, size * 0.35), size * 0.15, mainPaint);
-    canvas.drawCircle(
-      Offset(size * 0.65, size * 0.65),
-      size * 0.12,
-      secondaryPaint,
-    );
 
     final picture = recorder.endRecording();
     final image = await picture.toImage(size.toInt(), size.toInt());

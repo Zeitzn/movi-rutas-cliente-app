@@ -1,3 +1,4 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -67,7 +68,6 @@ class _LeafletMapWidgetState extends State<LeafletMapWidget> {
   void _updateMarkers() {
     _markers = [];
 
-    // Marcador del usuario
     _markers.add(
       Marker(
         point: LatLng(widget.userLatitude, widget.userLongitude),
@@ -89,7 +89,6 @@ class _LeafletMapWidgetState extends State<LeafletMapWidget> {
       ),
     );
 
-    // Marcadores de vehículos
     for (int i = 0; i < widget.vehicleLocations.length; i++) {
       final location = widget.vehicleLocations[i];
       final mainColor = Color(location.mainColor);
@@ -103,23 +102,13 @@ class _LeafletMapWidgetState extends State<LeafletMapWidget> {
             message: location.routeCode.isNotEmpty
                 ? 'Bus: ${location.placa} - Ruta ${location.routeCode}'
                 : 'Bus: ${location.placa}',
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: SweepGradient(
-                  colors: [mainColor, secondaryColor, mainColor],
-                  stops: const [0.0, 0.5, 1.0],
-                ),
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: [
-                  BoxShadow(
-                    color: mainColor.withAlpha(100),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+            child: CustomPaint(
+              size: const Size(48, 48),
+              painter: _BusMarkerPainter(
+                mainColor: mainColor,
+                secondaryColor: secondaryColor,
               ),
-              child: Center(
+              child: const Center(
                 child: Icon(
                   Icons.directions_bus,
                   color: Colors.white,
@@ -157,5 +146,60 @@ class _LeafletMapWidgetState extends State<LeafletMapWidget> {
         MarkerLayer(markers: _markers),
       ],
     );
+  }
+}
+
+class _BusMarkerPainter extends CustomPainter {
+  final Color mainColor;
+  final Color secondaryColor;
+
+  _BusMarkerPainter({required this.mainColor, required this.secondaryColor});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+
+    final mainPaint = Paint()
+      ..color = mainColor
+      ..style = PaintingStyle.fill;
+
+    final secondaryPaint = Paint()
+      ..color = secondaryColor
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+
+    canvas.save();
+    final clipPath = ui.Path()
+      ..addOval(Rect.fromCircle(center: center, radius: radius - 1));
+    canvas.clipPath(clipPath);
+
+    final upperPath = ui.Path()
+      ..moveTo(0, 0)
+      ..lineTo(0, size.height)
+      ..lineTo(size.width, 0)
+      ..close();
+
+    final lowerPath = ui.Path()
+      ..moveTo(0, size.height)
+      ..lineTo(size.width, size.height)
+      ..lineTo(size.width, 0)
+      ..close();
+
+    canvas.drawPath(upperPath, mainPaint);
+    canvas.drawPath(lowerPath, secondaryPaint);
+    canvas.restore();
+
+    canvas.drawCircle(center, radius - 1, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BusMarkerPainter oldDelegate) {
+    return oldDelegate.mainColor != mainColor ||
+        oldDelegate.secondaryColor != secondaryColor;
   }
 }
